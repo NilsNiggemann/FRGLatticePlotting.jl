@@ -1,3 +1,5 @@
+export LatticeInfo,FourierTransform, Fourier2D, equalTimeChi, EnergyBeta, get_e_Chi, Chikplot, getFlow, plotFlow, plotMaxFlow, pointPath, fetchKPath, plotKpath
+
 @with_kw struct LatticeInfo{BasisType,RvecType,FunctionType}
     System::Geometry
     Basis::BasisType
@@ -84,9 +86,9 @@ function EnergyBeta(Chi_RNu, Lattice)
     return E
 end
 
-function get_e_Chi(Chi_TRnu,Lattice)
-    e_Chi = similar(Results.T)
-    for (iT,T) in enumerate(Results.T)
+function get_e_Chi(Chi_TRnu,Trange,Lattice)
+    e_Chi = similar(Trange)
+    for (iT,T) in enumerate(Trange)
         e_Chi[iT] = @views T*EnergyBeta(Chi_TRnu[iT,:,:],Lattice)
     end
     return e_Chi
