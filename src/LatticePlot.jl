@@ -25,7 +25,7 @@ function plotSystem(System,Basis;refSite = 0,markersize = 5,inequivColor = "gree
     @unpack PairList,OnsitePairs = System
     indices = copy(OnsitePairs)
     push!(indices,length(PairList)) # get final index
-    allpairs = unique!(sortedPairList(System.NLen,Basis)[1])
+    allpairs = unique!(SpinFRGLattices.sortedPairList(System.NLen,Basis)[1])
     if refSite == 0
         plotpairs = unique(PairList)
     else
