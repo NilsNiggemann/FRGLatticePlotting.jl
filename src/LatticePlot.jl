@@ -21,7 +21,7 @@ function pairsPlot(PairList,Basis,pl = plot(size = (700,700),aspectratio = 1);co
 end
 
 """Plot all sites and inequivalent pairs"""
-function plotSystem(System,Basis;refSite = 0,markersize = 5,inequivColor = "green",inequivalpha = 0.5,kwargs...)
+function plotSystem(System,Basis;plotAll = true,refSite = 0,markersize = 5,inequivColor = "green",inequivalpha = 0.5,kwargs...)
     @unpack PairList,OnsitePairs = System
     indices = copy(OnsitePairs)
     push!(indices,length(PairList)) # get final index
@@ -32,12 +32,13 @@ function plotSystem(System,Basis;refSite = 0,markersize = 5,inequivColor = "gree
         # allpairs = unique!(generatePairSites(System.NLen,Basis,Basis.refSites[refSite]))
         plotpairs = PairList[indices[refSite]:indices[refSite+1]]
     end
-    pl = pairsPlot(plotpairs,Basis,color = inequivColor,alpha = inequivalpha,markersize = 2*markersize)
-    pairsPlot(allpairs,Basis,pl,markersize = markersize;kwargs...)
+
+    plotAll || (allpairs = plotpairs)
+    pl = pairsPlot(allpairs,Basis,markersize = markersize;kwargs...)
+    plotAll && pairsPlot(plotpairs,Basis,pl,color = inequivColor,alpha = inequivalpha,markersize = 2*markersize)
     return pl
 end
 
-"""Only tested for 2D"""
 function plotCouplings(System,Basis,pl;kwargs...)
     prepdata(r1,r2) = Tuple(SA[r1[i],r2[i]] for i in eachindex(r1))
 
@@ -48,7 +49,7 @@ function plotCouplings(System,Basis,pl;kwargs...)
         if abs(J)> 1E-10
             r_pair = getCartesian(R_pair,Basis)
             points = prepdata(r_ref,r_pair)
-            plot!(pl,points...,label = J,lw = 1+4*abs(J);kwargs...)
+            plot!(pl,points...,label = round(J,digits=3),lw = 1+4*abs(J);kwargs...)
         end
     end
     return pl
