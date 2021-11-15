@@ -1,4 +1,4 @@
-export pairsPlot, plotSystem, plotCouplings
+export pairsPlot, plotSystem, plotCouplings!,plotCorrelations!
 
 """Plots sites in PairList."""
 function pairsPlot(PairList,Basis,pl = plot(size = (700,700),aspectratio = 1);colors = ("blue","red","black","cyan","yellow","green","pink","orange","lime","brown","grey"),color = "",colorBasis = false,kwargs...)
@@ -39,10 +39,10 @@ function plotSystem(System,Basis;plotAll = true,refSite = 0,markersize = 5,inequ
     return pl
 end
 
-function plotCouplings(System,Basis,pl;kwargs...)
+function plotCorrelations!(System,Basis,couplings,pl=current();kwargs...)
     prepdata(r1,r2) = Tuple(SA[r1[i],r2[i]] for i in eachindex(r1))
 
-    @unpack PairTypes,PairList,couplings = System
+    @unpack PairTypes,PairList = System
     for (type,R_pair,J) in zip(PairTypes,PairList,couplings)
         x = type.xi
         r_ref = getCartesian(Basis.refSites[x],Basis)
@@ -53,4 +53,8 @@ function plotCouplings(System,Basis,pl;kwargs...)
         end
     end
     return pl
+end
+
+function plotCouplings!(System,Basis,pl=current();kwargs...)
+    plotCorrelations(System,Basis,System.couplings,pl,kwargs...)
 end

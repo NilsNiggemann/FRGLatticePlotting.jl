@@ -1,4 +1,4 @@
-export LatticeInfo,FourierTransform, Fourier2D, equalTimeChi, EnergyBeta, get_e_Chi, Chikplot, getFlow, plotFlow, plotMaxFlow, pointPath, fetchKPath, plotKpath
+export LatticeInfo,FourierTransform, Fourier2D, equalTimeChi, EnergyBeta, get_e_Chi, Chikplot, getFlow, plotFlow, plotMaxFlow,plotMaxFlow_fast, pointPath, fetchKPath, plotKpath,plotKpath!, pscatter!,pplot!,getkMax
 
 @with_kw struct LatticeInfo{BasisType,RvecType,FunctionType}
     System::Geometry
@@ -36,8 +36,8 @@ function FourierTransform(k::StaticArray,Chi_R, Lattice)
 end
 
 """Returns 2D Fourier trafo in plane as specified by the "regionfunc" function. Eg for a plot in the xy plane we can use plane = (ki,kj) -> SA[ki,kj] """
-function Fourier2D(Chi_R::AbstractArray,regionfunc::Function,Lattice;res=100,ext = pi)
-    karray = range(-ext,stop = ext,length = res)
+function Fourier2D(Chi_R::AbstractArray,regionfunc::Function,Lattice;res=100,ext = pi,minext = -ext)
+    karray = range(minext,stop = ext,length = res)
     Chi_k = zeros(res,res)
 
     Threads.@threads for i in 1:res
@@ -115,12 +115,12 @@ function getFlow(k::StaticArray,Chi_LR,Lambdas,Lattice)
     for i in eachindex(Lambdas)
         flow[i] =  @views FT(k,Chi_LR[i,:])
     end
-    return Lambdas,flow
+    return flow
 end
 
 function plotFlow(k::StaticArray,Chi_LR,Lambdas,Lattice,pl = plot();method = plot!,xmax=1.,kwargs...)
     flow = getFlow(k,Chi_LR,Lambdas,Lattice)
-    method(pl,flow, xlims = (0.,xmax);kwargs...)
+    method(pl,Lambdas,flow, xlims = (0.,xmax);kwargs...)
     return pl
 end 
 
@@ -132,7 +132,25 @@ function plotMaxFlow(Chi_LR,Lambdas,Lattice,regionfunc::Function,pl = plot();  r
     end
     method(pl,Lambdas,flow, xlims = (0.,xmax);kwargs...)
     return pl
-end 
+end
+
+function getkMax(Chi_R,Lattice,regionfunc::Function;kwargs...)
+    k,Chik = Fourier2D(Chi_R,regionfunc,Lattice;kwargs...)
+    ik1,ik2 = Tuple(argmax(Chik))
+    return regionfunc(k[ik1],k[ik2])
+end
+
+function plotMaxFlow_fast(Chi_LR,Lambdas,Lattice,regionfunc::Function,pl = plot();  res = 90,ext = pi,xmax=1.,method = plot!,kwargs...)
+    flow = similar(Lambdas)
+    flowEnd = argmin(Lambdas)
+    chiend = Chi_LR[flowEnd,:]
+    getkMax(chiend,Lattice,regionfunc;res=res,ext = ext)
+    for i in eachindex(Lambdas)
+        flow[i] =  @views FourierTransform(point,Chi_LR[i,:],Lattice)
+    end
+    method(pl,Lambdas,flow, xlims = (0.,xmax);kwargs...)
+    return pl
+end  
 ##
 function pointPath(p1::StaticArray,p2::StaticArray,res)
     Path = Vector{typeof(p1)}(undef,res)
@@ -156,16 +174,23 @@ function fetchKPath(points,res = 100)
 end
 ##
 
-function plotKpath(Chi_R,Lattice,points,pl = plot();  PointTicks = [round.(p,digits = 2) for p in points],res = 100,xmax=1.,method = plot!,kwargs...)
+function plotKpath!(pl,Chi_R,Lattice,points; PointTicks = [round.(p,digits = 2) for p in points],res = 100,xmax=1.,method = plot!,kwargs...)
 
     # PointTicks(ticks) = [p for p in points ]
     
     FT(k) = FourierTransform(k,Chi_R,Lattice)
     ticks,Path = fetchKPath(points,res)
     FTPath = FT.(Path)
-    method(pl,1:length(Path),FTPath,xticks = (ticks,PointTicks);kwargs...)
+    p0 = first(Path)
+    pend = last(Path)
+    lpath = norm(p0-pend)
+    xarr = lpath.* LinRange(0,1,length(Path))
+    method(pl,xarr,FTPath,xticks = (xarr[ticks],PointTicks);kwargs...)
     return pl
 end 
+
+plotKpath!(args...;kwargs...) = plotKpath!(current(),args...;kwargs...)
+plotKpath(args...;kwargs...) = plotKpath!(plot(),args...;kwargs...)
 ##
 # pscatter!(pArray;kwargs...) = scatter!(Tuple(p for p in pArray);kwargs...)
 # pscatter(pArray;kwargs...) = scatter(Tuple(p for p in pArray);kwargs...)
