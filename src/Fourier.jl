@@ -134,10 +134,14 @@ function plotMaxFlow(Chi_LR,Lambdas,Lattice,regionfunc::Function,pl = plot();  r
     return pl
 end
 
-function getkMax(Chi_R,Lattice,regionfunc::Function;kwargs...)
-    k,Chik = Fourier2D(Chi_R,regionfunc,Lattice;kwargs...)
+function getkMax(k::AbstractVector,Chik::AbstractMatrix)
     ik1,ik2 = Tuple(argmax(Chik))
-    return regionfunc(k[ik1],k[ik2])
+    return k[ik1],k[ik2]
+end
+
+function getkMax(Chi_R,Lattice::LatticeInfo,regionfunc::Function;kwargs...)
+    k1,k2 = getkMax(Fourier2D(Chi_R,regionfunc,Lattice;kwargs...)...)
+    return regionfunc(k1,k2)
 end
 
 function plotMaxFlow_fast(Chi_LR,Lambdas,Lattice,regionfunc::Function,pl = plot();  res = 90,ext = pi,xmax=1.,method = plot!,kwargs...)
