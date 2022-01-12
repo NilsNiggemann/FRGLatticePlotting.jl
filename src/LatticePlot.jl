@@ -56,5 +56,5 @@ function plotCorrelations!(System,Basis,couplings,pl=current();kwargs...)
 end
 
 function plotCouplings!(System,Basis,pl=current();kwargs...)
-    plotCorrelations(System,Basis,System.couplings,pl,kwargs...)
+    plotCorrelations!(System,Basis,System.couplings,pl,kwargs...)
 end
