@@ -99,12 +99,39 @@ end
 pitick(x) = latexstring("$(round(Int,x/pi)) \\pi") 
 PiMultipleTicks(ticks) = [pitick(x) for x in ticks  ]
 
-function Chikplot(k,Chi_k;xlabel = L"k_x",ylabel= L"k_y",colorscheme = :viridis,tickfontsize = 14,labelfontsize = 20,step = 1/2, kwargs...)
+
+function pitick(start, stop, denom; mode=:text)
+    #taken from https://discourse.julialang.org/t/plot-with-x-axis-in-radians-with-ticks-at-multiples-of-pi/65325/3
+    a = Int(cld(start, π/denom))
+    b = Int(fld(stop, π/denom))
+    tick = range(a*π/denom, b*π/denom; step=π/denom)
+    ticklabel = piticklabel.((a:b) .// denom, Val(mode))
+    tick, ticklabel
+end
+
+function piticklabel(x::Rational, ::Val{:text})
+    #taken from https://discourse.julialang.org/t/plot-with-x-axis-in-radians-with-ticks-at-multiples-of-pi/65325/3
+    iszero(x) && return "0"
+    S = x < 0 ? "-" : ""
+    n, d = abs(numerator(x)), denominator(x)
+    N = n == 1 ? "" : repr(n)
+    d == 1 && return S * N * "π"
+    S * N * "π/" * repr(d)
+end
+
+function piticklabel(x::Rational, ::Val{:latex})
+    #taken from https://discourse.julialang.org/t/plot-with-x-axis-in-radians-with-ticks-at-multiples-of-pi/65325/3
+    iszero(x) && return L"0"
+    S = x < 0 ? "-" : ""
+    n, d = abs(numerator(x)), denominator(x)
+    N = n == 1 ? "" : repr(n)
+    d == 1 && return L"%$S%$N\pi"
+    L"%$S\frac{%$N\pi}{%$d}"
+end
+
+function Chikplot(k,Chi_k;xlabel = L"k_x",ylabel= L"k_y",colorscheme = :viridis,tickfontsize = 14,labelfontsize = 20,steps = 5::Int, kwargs...)
     min,max = minimum(k),maximum(k)
-    ticks = collect(min:max*step:max)
-    ticklabels = PiMultipleTicks(ticks)
-    # pl = heatmap(k,k,transpose(Chi_k),size = (640, 600),xticks=(ticks,ticklabels),yticks=(ticks,ticklabels),linewidths=0.0,xlabel=xlabel ,ylabel= ylabel,c= colorscheme,right_margin = 15 *Plots.px,aspectratio = 1,tickfontsize = tickfontsize,labelfontsize = labelfontsize;kwargs...)
-    pl = heatmap(k,k,transpose(Chi_k),size = (570, 600),xticks=(ticks,ticklabels),yticks=(ticks,ticklabels),linewidths=0.0,xlabel=xlabel ,ylabel= ylabel,c= colorscheme,right_margin = 15 *Plots.px,aspectratio = 1,tickfontsize = tickfontsize,labelfontsize = labelfontsize,ylims = [min,max];kwargs...)
+    pl = heatmap(k,k,transpose(Chi_k),size = (570, 600),xticks=pitick(min,max,steps),yticks=pitick(min,max,steps),linewidths=0.0,xlabel=xlabel ,ylabel= ylabel,c= colorscheme,right_margin = 15 *Plots.px,aspectratio = 1,tickfontsize = tickfontsize,labelfontsize = labelfontsize,ylims = [min,max];kwargs...)
     return pl
 end
 
