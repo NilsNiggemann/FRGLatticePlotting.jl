@@ -1,6 +1,10 @@
-export LatticeInfo,FourierTransform, Fourier2D, equalTimeChi, EnergyBeta, get_e_Chi, Chikplot, getFlow, plotFlow, plotMaxFlow,plotMaxFlow_fast, pointPath, fetchKPath, plotKpath,plotKpath!, pscatter!,pplot!,getkMax
+export LatticeInfo,FourierTransform, Fourier2D, equalTimeChi, EnergyBeta, get_e_Chi, Chikplot, getFlow, plotFlow, plotMaxFlow,plotMaxFlow_fast, pointPath, fetchKPath, plotKpath,plotKpath!, pscatter!,pplot!,getkMax,Fourier3D
 
-@with_kw struct LatticeInfo{BasisType,RvecType,FunctionType}
+struct FourierInfo{Dim}
+    pairs::Vector{Int}
+    Rij_vec::Vector{SVector{Dim,Float64}}
+end
+@with_kw struct LatticeInfo{BasisType,RvecType,FunctionType,RijType}
     System::Geometry
     Basis::BasisType
     NLen::Int = System.NLen
@@ -11,12 +15,16 @@ export LatticeInfo,FourierTransform, Fourier2D, equalTimeChi, EnergyBeta, get_e_
     SiteList::Vector{RvecType} = unique(SpinFRGLattices.sortedPairList(NLen,Basis)[1])
     UnitCell::Vector{RvecType} = [SpinFRGLattices.getRvec(b,Basis) for b in Basis.b]
     pairToInequiv::FunctionType
+    FourierInfos::FourierInfo{RijType} = PrecomputeFourier(UnitCell,SiteList,PairList,PairTypes,pairToInequiv,Basis)
 end
+LatticeInfo(System,Mod::Module,PTI =Mod.pairToInequiv ) = LatticeInfo(System=System,Basis = Mod.Basis,pairToInequiv = PTI)
 
-##
-function FourierTransform(k::StaticArray,Chi_R, Lattice)
-    @unpack PairList,SiteList,PairTypes,Basis,UnitCell,pairToInequiv = Lattice
-    Chi_k = 0. +0im
+getDim(B::Basis_Struct_2D) = 2
+getDim(B::Basis_Struct_3D) = 3
+
+function PrecomputeFourier(UnitCell,SiteList,PairList,PairTypes,pairToInequiv,Basis)
+    Rij_vec = SVector{getDim(Basis),Float64}[]
+    pairs = Int[]
     for i_site in UnitCell
         Ri = getCartesian(i_site,Basis)
         # println(Ri)
@@ -27,13 +35,24 @@ function FourierTransform(k::StaticArray,Chi_R, Lattice)
             xi = getSiteType(R_Ref,Basis)
             pair = MapToPair(xi,ij,PairList,PairTypes)
             if pair !== 0
-                Chi_k += 1/Basis.NCell * exp(1im * k' * Rij) * Chi_R[pair]
+                push!(Rij_vec,Rij)
+                push!(pairs,pair)
             end
-            # println(j_site,Chi_R[pair])
         end
     end
-    return real(Chi_k)
+    return FourierInfo(pairs,Rij_vec)
 end
+
+function FourierTransform(k::StaticArray,Chi_R, NCell,pairs,Rij_vec)
+    Chi_k = 0. +0im
+    for (p,Rij) in zip(pairs,Rij_vec)
+        Chi_k += exp(1im * k' * Rij) * Chi_R[p]
+    end
+    return 1/NCell * real(Chi_k)
+end
+
+FourierTransform(k::StaticArray,Chi_R, Lattice::LatticeInfo) = FourierTransform(k::StaticArray,Chi_R, Lattice.Basis.NCell,Lattice.FourierInfos.pairs,Lattice.FourierInfos.Rij_vec) 
+
 
 """Returns 2D Fourier trafo in plane as specified by the "regionfunc" function. Eg for a plot in the xy plane we can use plane = (ki,kj) -> SA[ki,kj] """
 function Fourier2D(Chi_R::AbstractArray,regionfunc::Function,Lattice;res=100,ext = pi,minext = -ext)
@@ -44,6 +63,20 @@ function Fourier2D(Chi_R::AbstractArray,regionfunc::Function,Lattice;res=100,ext
         ki = karray[i]
         for (j,kj) in enumerate(karray)
             Chi_k[j,i] = FourierTransform(regionfunc(kj,ki),Chi_R,Lattice)
+        end
+    end
+    return karray,Chi_k
+end
+
+"""Returns 3D Fourier trafo"""
+function Fourier3D(Chi_R::AbstractArray,Lattice;res=50,ext = pi,minext = -ext)
+    karray = range(minext,stop = ext,length = res)
+    Chi_k = zeros(res,res,res)
+
+    Threads.@threads for iz in 1:res
+        kz = karray[iz]
+        for (iy,ky) in enumerate(karray),(ix,kx) in enumerate(karray)
+            Chi_k[ix,iy,iz] = FourierTransform(SA[kx,ky,kz],Chi_R,Lattice)
         end
     end
     return karray,Chi_k
@@ -129,9 +162,10 @@ function piticklabel(x::Rational, ::Val{:latex})
     L"%$S\frac{%$N\pi}{%$d}"
 end
 
-function Chikplot(k,Chi_k;xlabel = L"k_x",ylabel= L"k_y",colorscheme = :viridis,tickfontsize = 14,labelfontsize = 20,steps = 5::Int, kwargs...)
+function Chikplot(k,Chi_k;xlabel = L"k_x",ylabel= L"k_y",colorscheme = :viridis,tickfontsize = 14,labelfontsize = 20,PiStep = 1, kwargs...)
+    denom = 1//PiStep
     min,max = minimum(k),maximum(k)
-    pl = heatmap(k,k,transpose(Chi_k),size = (570, 600),xticks=pitick(min,max,steps),yticks=pitick(min,max,steps),linewidths=0.0,xlabel=xlabel ,ylabel= ylabel,c= colorscheme,right_margin = 15 *Plots.px,aspectratio = 1,tickfontsize = tickfontsize,labelfontsize = labelfontsize,ylims = [min,max];kwargs...)
+    pl = heatmap(k,k,transpose(Chi_k),size = (570, 600),xticks=pitick(min,max,denom),yticks=pitick(min,max,denom),linewidths=0.0,xlabel=xlabel ,ylabel= ylabel,c= colorscheme,right_margin = 15 *Plots.px,aspectratio = 1,tickfontsize = tickfontsize,labelfontsize = labelfontsize,ylims = [min,max];kwargs...)
     return pl
 end
 
