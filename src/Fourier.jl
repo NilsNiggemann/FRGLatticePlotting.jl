@@ -1,4 +1,4 @@
-export LatticeInfo,FourierTransform, Fourier2D, equalTimeChi, EnergyBeta, get_e_Chi, Chikplot, getFlow, plotFlow, plotMaxFlow,plotMaxFlow_fast, pointPath, fetchKPath, plotKpath,plotKpath!, pscatter!,pplot!,getkMax,Fourier3D
+export AbstractLattice, LatticeInfo,FourierTransform, Fourier2D, equalTimeChi, EnergyBeta, get_e_Chi, Chikplot, getFlow, plotFlow, plotMaxFlow,plotMaxFlow_fast, pointPath, fetchKPath, plotKpath,plotKpath!, pscatter!,pplot!,getkMax,Fourier3D
 
 struct FourierInfo{Dim}
     pairs::Vector{Int}
