@@ -4,7 +4,8 @@ struct FourierInfo{Dim}
     pairs::Vector{Int}
     Rij_vec::Vector{SVector{Dim,Float64}}
 end
-@with_kw struct LatticeInfo{BasisType,RvecType,FunctionType,RijType}
+abstract type AbstractLattice end
+@with_kw struct LatticeInfo{BasisType,RvecType,FunctionType,RijType} <: AbstractLattice
     System::Geometry
     Basis::BasisType
     NLen::Int = System.NLen
@@ -51,11 +52,11 @@ function FourierTransform(k::StaticArray,Chi_R, NCell,pairs,Rij_vec)
     return 1/NCell * real(Chi_k)
 end
 
-FourierTransform(k::StaticArray,Chi_R, Lattice::LatticeInfo) = FourierTransform(k::StaticArray,Chi_R, Lattice.Basis.NCell,Lattice.FourierInfos.pairs,Lattice.FourierInfos.Rij_vec) 
+FourierTransform(k::StaticArray,Chi_R, Lattice::AbstractLattice) = FourierTransform(k::StaticArray,Chi_R, Lattice.Basis.NCell,Lattice.FourierInfos.pairs,Lattice.FourierInfos.Rij_vec) 
 
 
 """Returns 2D Fourier trafo in plane as specified by the "regionfunc" function. Eg for a plot in the xy plane we can use plane = (ki,kj) -> SA[ki,kj] """
-function Fourier2D(Chi_R::AbstractArray,regionfunc::Function,Lattice;res=100,ext = pi,minext = -ext)
+function Fourier2D(Chi_R::AbstractArray,regionfunc::Function,Lattice::AbstractLattice;res=100,ext = pi,minext = -ext)
     karray = range(minext,stop = ext,length = res)
     Chi_k = zeros(res,res)
 
@@ -69,7 +70,7 @@ function Fourier2D(Chi_R::AbstractArray,regionfunc::Function,Lattice;res=100,ext
 end
 
 """Returns 3D Fourier trafo"""
-function Fourier3D(Chi_R::AbstractArray,Lattice;res=50,ext = pi,minext = -ext)
+function Fourier3D(Chi_R::AbstractArray,Lattice::AbstractLattice;res=50,ext = pi,minext = -ext)
     karray = range(minext,stop = ext,length = res)
     Chi_k = zeros(res,res,res)
 
