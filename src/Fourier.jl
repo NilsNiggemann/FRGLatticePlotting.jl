@@ -5,7 +5,7 @@ struct FourierInfo{Dim}
     Rij_vec::Vector{SVector{Dim,Float64}}
 end
 abstract type AbstractLattice end
-@with_kw struct LatticeInfo{BasisType,RvecType,FunctionType,RijType} <: AbstractLattice
+@with_kw struct LatticeInfo{BasisType,RvecType,FunctionType,Dim} <: AbstractLattice
     System::Geometry
     Basis::BasisType
     NLen::Int = System.NLen
@@ -16,7 +16,7 @@ abstract type AbstractLattice end
     SiteList::Vector{RvecType} = unique(SpinFRGLattices.sortedPairList(NLen,Basis)[1])
     UnitCell::Vector{RvecType} = [SpinFRGLattices.getRvec(b,Basis) for b in Basis.b]
     pairToInequiv::FunctionType
-    FourierInfos::FourierInfo{RijType} = PrecomputeFourier(UnitCell,SiteList,PairList,PairTypes,pairToInequiv,Basis)
+    FourierInfos::FourierInfo{Dim} = PrecomputeFourier(UnitCell,SiteList,PairList,PairTypes,pairToInequiv,Basis)
 end
 LatticeInfo(System,Mod::Module,PTI =Mod.pairToInequiv ) = LatticeInfo(System=System,Basis = Mod.Basis,pairToInequiv = PTI)
 
