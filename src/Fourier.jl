@@ -44,15 +44,39 @@ function PrecomputeFourier(UnitCell,SiteList,PairList,PairTypes,pairToInequiv,Ba
     return FourierInfo(pairs,Rij_vec)
 end
 
-function FourierTransform(k::StaticArray,Chi_R, NCell,pairs,Rij_vec)
-    Chi_k = 0. +0im
-    for (p,Rij) in zip(pairs,Rij_vec)
-        Chi_k += exp(1im * k' * Rij) * Chi_R[p]
+# function FourierTransform(k::StaticVector,Chi_R, NCell,pairs,Rij_vec)
+#     Chi_k = 0. +0im
+#     for (p,Rij) in zip(pairs,Rij_vec)
+#         Chi_k += exp(1im * k' * Rij) * Chi_R[p]
+#     end
+#     return 1/NCell * real(Chi_k)
+# end
+
+# function FourierTransform(k::StaticVector,Chi_R, NCell,pairs,Rij_vec)
+#     Chi_k = 0.
+#     for (p,Rij) in zip(pairs,Rij_vec)
+#         Chi_k += cos(k' * Rij) * Chi_R[p]
+#     end
+#     return 1/NCell * Chi_k
+# end
+
+function dot(v1::AbstractVector{T},v2::AbstractVector{T}) where T
+    res = zero(T)
+    @inbounds @simd for i in eachindex(v1,v2)
+        res+= v1[i]*v2[i]
     end
-    return 1/NCell * real(Chi_k)
+    return res
 end
 
-FourierTransform(k::StaticArray,Chi_R, Lattice::AbstractLattice) = FourierTransform(k::StaticArray,Chi_R, Lattice.Basis.NCell,Lattice.FourierInfos.pairs,Lattice.FourierInfos.Rij_vec) 
+function FourierTransform(k::AbstractVector,Chi_R, NCell,pairs,Rij_vec)
+    Chi_k = 0.
+    for (p,Rij) in zip(pairs,Rij_vec)
+        Chi_k += cos(dot(k, Rij)) * Chi_R[p]
+    end
+    return 1/NCell * Chi_k
+end
+
+FourierTransform(k,Chi_R, Lattice::AbstractLattice) = FourierTransform(k,Chi_R, Lattice.Basis.NCell,Lattice.FourierInfos.pairs,Lattice.FourierInfos.Rij_vec) 
 
 
 """Returns 2D Fourier trafo in plane as specified by the "regionfunc" function. Eg for a plot in the xy plane we can use plane = (ki,kj) -> SA[ki,kj] """
