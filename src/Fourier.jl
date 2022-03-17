@@ -1,4 +1,4 @@
-export AbstractLattice, LatticeInfo,FourierTransform, Fourier2D, equalTimeChi, EnergyBeta, get_e_Chi, Chikplot, getFlow, plotFlow, plotMaxFlow,plotMaxFlow_fast, pointPath, fetchKPath, plotKpath,plotKpath!, pscatter!,pplot!,getkMax,Fourier3D
+export AbstractLattice, LatticeInfo,FourierTransform, Fourier2D, equalTimeChiBeta, EnergyBeta, get_e_Chi, Chikplot, getFlow, plotFlow, plotMaxFlow,plotMaxFlow_fast, pointPath, fetchKPath, plotKpath,plotKpath!, pscatter!,pplot!,getkMax,Fourier3D
 
 struct FourierInfo{Dim}
     pairs::Vector{Int}
@@ -82,15 +82,20 @@ FourierTransform(k,Chi_R, Lattice::AbstractLattice) = FourierTransform(k,Chi_R, 
 """Returns 2D Fourier trafo in plane as specified by the "regionfunc" function. Eg for a plot in the xy plane we can use plane = (ki,kj) -> SA[ki,kj] """
 function Fourier2D(Chi_R::AbstractArray,regionfunc::Function,Lattice::AbstractLattice;res=100,ext = pi,minext = -ext)
     karray = range(minext,stop = ext,length = res)
-    Chi_k = zeros(res,res)
+    Chi_k = Fourier2D(Chi_R::AbstractArray,karray,karray ,regionfunc::Function,Lattice::AbstractLattice)
+    return karray,Chi_k
+end
 
-    Threads.@threads for i in 1:res
-        ki = karray[i]
-        for (j,kj) in enumerate(karray)
-            Chi_k[j,i] = FourierTransform(regionfunc(kj,ki),Chi_R,Lattice)
+function Fourier2D(Chi_R::AbstractArray,x::AbstractVector,y::AbstractVector, regionfunc::Function,Lattice::AbstractLattice)
+    Chi_k = zeros(length(x),length(y))
+
+    Threads.@threads for j in eachindex(y)
+        kj = x[j]
+        for (i,ki) in enumerate(x)
+            Chi_k[i,j] = FourierTransform(regionfunc(ki,kj),Chi_R,Lattice)
         end
     end
-    return karray,Chi_k
+    return Chi_k
 end
 
 """Returns 3D Fourier trafo"""
@@ -108,9 +113,9 @@ function Fourier3D(Chi_R::AbstractArray,Lattice::AbstractLattice;res=50,ext = pi
 end
 ##
 
-"""Computes χ_ij(τ=0)"""
-function equalTimeChi(Chi_RNu)
-    Npairs,N_nu = size(Chi_RNu)
+"""Computes χ_ij(τ=0)/T"""
+function equalTimeChiBeta(Chi_RNu,N_nu = size(Chi_RNu,2))
+    # Npairs,N_nu = size(Chi_RNu)
     Chi_Tau0 = Chi_RNu[:,begin] # add static nu=0 component, appears only once in sum
     for R in eachindex(Chi_Tau0)
         sum = 0.
@@ -123,11 +128,11 @@ function equalTimeChi(Chi_RNu)
 end
 
 """Compute energy divided by temperature from spin correlations"""
-function EnergyBeta(Chi_RNu, Lattice)
+function EnergyBeta(Chi_RNu, Lattice,Nnu)
     @unpack PairList,SiteList,PairTypes,Basis,UnitCell,pairToInequiv,Npairs = Lattice
     J_ij = Lattice.System.couplings
     E = 0.
-    Chi_Tau0 = equalTimeChi(Chi_RNu)
+    Chi_Tau0 = equalTimeChiBeta(Chi_RNu,Nnu)
 
     for i_site in UnitCell
         # println(Ri)
@@ -144,10 +149,10 @@ function EnergyBeta(Chi_RNu, Lattice)
     return E
 end
 
-function get_e_Chi(Chi_TRnu,Trange,Lattice)
+function get_e_Chi(Chi_TRnu,Trange,Lattice,Nnu)
     e_Chi = similar(Trange)
     for (iT,T) in enumerate(Trange)
-        e_Chi[iT] = @views T*EnergyBeta(Chi_TRnu[iT,:,:],Lattice)
+        e_Chi[iT] = @views T*EnergyBeta(Chi_TRnu[iT,:,:],Lattice,Nnu)
     end
     return e_Chi
 end
@@ -187,13 +192,16 @@ function piticklabel(x::Rational, ::Val{:latex})
     L"%$S\frac{%$N\pi}{%$d}"
 end
 
-function Chikplot(k,Chi_k;xlabel = L"k_x",ylabel= L"k_y",colorscheme = :viridis,tickfontsize = 14,labelfontsize = 20,PiStep = 1, kwargs...)
+
+function Chikplot(kx::AbstractArray,ky::AbstractArray,Chi_k;xlabel = L"k_x",ylabel= L"k_y",colorscheme = :viridis,tickfontsize = 14,labelfontsize = 20,PiStep = 1, kwargs...)
     denom = 1//PiStep
-    min,max = minimum(k),maximum(k)
-    pl = heatmap(k,k,transpose(Chi_k),size = (570, 600),xticks=pitick(min,max,denom),yticks=pitick(min,max,denom),linewidths=0.0,xlabel=xlabel ,ylabel= ylabel,c= colorscheme,right_margin = 15 *Plots.px,aspectratio = 1,tickfontsize = tickfontsize,labelfontsize = labelfontsize,ylims = [min,max];kwargs...)
+    piticks(ax) = pitick(minimum(ax),maximum(ax),denom)
+
+    pl = heatmap(kx,ky,transpose(Chi_k),size = (570, 600),xticks=piticks(kx),yticks=piticks(ky),linewidths=0.0,xlabel=xlabel ,ylabel= ylabel,c= colorscheme,right_margin = 15 *Plots.px,aspectratio = 1,tickfontsize = tickfontsize,labelfontsize = labelfontsize;kwargs...)
     return pl
 end
 
+Chikplot(k,Chi_k; kwargs...) = Chikplot(k,k,Chi_k; kwargs...)
 ##
 function getFlow(k::StaticArray,Chi_LR,Lambdas,Lattice)
     flow = similar(Lambdas)
@@ -213,6 +221,16 @@ end
 function plotMaxFlow(Chi_LR,Lambdas,Lattice,regionfunc::Function,pl = plot();  res = 30,ext = pi,xmax=1.,method = plot!,kwargs...)
     flow = similar(Lambdas)
     FT(Chi) = maximum(Fourier2D(Chi,regionfunc,Lattice,res = res,ext=ext)[2])
+    for i in eachindex(Lambdas)
+        flow[i] =  @views FT(Chi_LR[i,:])
+    end
+    method(pl,Lambdas,flow, xlims = (0.,xmax);kwargs...)
+    return pl
+end
+
+function plotMaxFlow(Chi_LR,Lambdas,Lattice::LatticeInfo{Basis_Struct_3D,Rvec_3D,F,3},pl = plot();  res = 30,ext = pi,xmax=1.,method = plot!,kwargs...) where {F}
+    flow = similar(Lambdas)
+    FT(Chi) = maximum(Fourier3D(Chi,Lattice,res = res,ext=ext)[2])
     for i in eachindex(Lambdas)
         flow[i] =  @views FT(Chi_LR[i,:])
     end
