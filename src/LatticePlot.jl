@@ -1,4 +1,4 @@
-export pairsPlot, plotSystem, plotCouplings!,plotCorrelations!,plotBond!,plotBonds!,plotDistBonds!
+export pairsPlot, plotSystem, plotCouplings!,plotCorrelations!,plotBond!,plotBonds!,plotDistBonds!,plotDistBonds
 
 """Plots sites in PairList."""
 function pairsPlot(PairList,Basis,pl = plot(size = (700,700),aspectratio = 1);colors = ("blue","red","black","cyan","yellow","green","pink","orange","lime","brown","grey"),color = "",colorBasis = false,kwargs...)
@@ -35,9 +35,9 @@ function plotSystem(System,Basis;plotAll = true,refSite = 0,markersize = 5,inequ
 
     plotAll || (allpairs = plotpairs)
     pl = pairsPlot(allpairs,Basis,markersize = markersize;kwargs...)
+    plotBonds && plotDistBonds!(System,Basis)
     plotAll && pairsPlot(plotpairs,Basis,pl,color = inequivColor,alpha = inequivalpha,markersize = 2*markersize)
     
-    plotBonds && plotDistBonds!(System,Basis)
     plotCouplings && plotCouplings!(System,Basis)
     return pl
 end
@@ -147,3 +147,5 @@ end
 plotDistBonds!(Site::Rvec,Basis,pl = current();kwargs...) = plotBonds!(Site,getBonds(Site,minDist,maxDist,Basis),Basis,pl;kwargs...)
 
 plotDistBonds!(System::Geometry,Basis::Basis_Struct,pl = current();kwargs...) = plotDistBonds!(generatePairSites(System.NLen,Basis),Basis,pl = current();kwargs...)
+
+plotDistBonds(System::Geometry,Basis::Basis_Struct;kwargs...) = plotDistBonds!(generatePairSites(System.NLen,Basis),Basis,pl = plot();kwargs...)
