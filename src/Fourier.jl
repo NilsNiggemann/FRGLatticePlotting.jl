@@ -1,4 +1,4 @@
-export AbstractLattice, LatticeInfo,FourierTransform, Fourier2D, equalTimeChiBeta, EnergyBeta, get_e_Chi, Chikplot, getFlow, plotFlow, plotMaxFlow,plotMaxFlow_fast, pointPath, fetchKPath, plotKpath,plotKpath!, pscatter!,pplot!,getkMax,Fourier3D
+export AbstractLattice, LatticeInfo,FourierTransform, Fourier2D, equalTimeChiBeta, EnergyBeta, get_e_Chi, Chikplot, getFlow, plotFlow, plotMaxFlow,plotMaxFlow!,plotMaxFlow_fast, pointPath, fetchKPath, plotKpath,plotKpath!, pscatter!,pplot!,getkMax,Fourier3D
 
 struct FourierInfo{Dim}
     pairs::Vector{Int}
@@ -23,7 +23,7 @@ LatticeInfo(System,Mod::Module,PTI =Mod.pairToInequiv ) = LatticeInfo(System=Sys
 getDim(B::Basis_Struct_2D) = 2
 getDim(B::Basis_Struct_3D) = 3
 
-function PrecomputeFourier(UnitCell,SiteList,PairList,PairTypes,pairToInequiv,Basis)
+function PrecomputeFourier(UnitCell::AbstractVector{T},SiteList::AbstractVector{T},PairList::AbstractVector{T},PairTypes,pairToInequiv,Basis) where T <: Rvec
     Rij_vec = SVector{getDim(Basis),Float64}[]
     pairs = Int[]
     for i_site in UnitCell
@@ -60,7 +60,7 @@ end
 #     return 1/NCell * Chi_k
 # end
 
-function dot(v1::AbstractVector{T},v2::AbstractVector{T}) where T
+@inline function dot(v1::AbstractVector{T},v2::AbstractVector{T}) where T
     res = zero(T)
     @inbounds @simd for i in eachindex(v1,v2)
         res+= v1[i]*v2[i]
@@ -68,7 +68,7 @@ function dot(v1::AbstractVector{T},v2::AbstractVector{T}) where T
     return res
 end
 
-function FourierTransform(k::AbstractVector,Chi_R, NCell,pairs,Rij_vec)
+@inline function FourierTransform(k::AbstractVector,Chi_R, NCell,pairs,Rij_vec)
     Chi_k = 0.
     for (p,Rij) in zip(pairs,Rij_vec)
         Chi_k += cos(dot(k, Rij)) * Chi_R[p]
@@ -76,8 +76,7 @@ function FourierTransform(k::AbstractVector,Chi_R, NCell,pairs,Rij_vec)
     return 1/NCell * Chi_k
 end
 
-FourierTransform(k,Chi_R, Lattice::AbstractLattice) = FourierTransform(k,Chi_R, Lattice.Basis.NCell,Lattice.FourierInfos.pairs,Lattice.FourierInfos.Rij_vec) 
-
+@inline FourierTransform(k,Chi_R, Lattice::AbstractLattice) = FourierTransform(k,Chi_R, Lattice.Basis.NCell,Lattice.FourierInfos.pairs,Lattice.FourierInfos.Rij_vec) 
 
 """Returns 2D Fourier trafo in plane as specified by the "regionfunc" function. Eg for a plot in the xy plane we can use plane = (ki,kj) -> SA[ki,kj] """
 function Fourier2D(Chi_R::AbstractArray,regionfunc::Function,Lattice::AbstractLattice;res=100,ext = pi,minext = -ext)
@@ -237,6 +236,10 @@ function plotMaxFlow(Chi_LR,Lambdas,Lattice::LatticeInfo{Basis_Struct_3D,Rvec_3D
     method(pl,Lambdas,flow, xlims = (0.,xmax);kwargs...)
     return pl
 end
+
+plotMaxFlow!(pl,Chi_LR,Lambdas,Lattice,regionfunc::Function;kwargs...) = plotMaxFlow(Chi_LR,Lambdas,Lattice,regionfunc,pl;kwargs...)
+
+plotMaxFlow!(Chi_LR,Lambdas,Lattice,regionfunc::Function;kwargs...) = plotMaxFlow(Chi_LR,Lambdas,Lattice,regionfunc,current();kwargs...)
 
 function getkMax(k::AbstractVector,Chik::AbstractMatrix)
     ik1,ik2 = Tuple(argmax(Chik))

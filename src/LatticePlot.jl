@@ -42,17 +42,17 @@ function plotSystem(System,Basis;plotAll = true,refSite = 0,markersize = 5,inequ
     return pl
 end
 
-function plotCorrelations!(System,Basis,couplings,pl=current();kwargs...)
-    prepdata(r1,r2) = Tuple(SA[r1[i],r2[i]] for i in eachindex(r1))
+function plotCorrelations!(System::Geometry,Basis::Basis_Struct,couplings::AbstractVector,pl::Plots.Plot=current();colors = nothing,kwargs...)
 
     @unpack PairTypes,PairList = System
-    for (type,R_pair,J) in zip(PairTypes,PairList,couplings)
-        x = type.xi
-        r_ref = getCartesian(Basis.refSites[x],Basis)
-        if abs(J)> 1E-10
-            r_pair = getCartesian(R_pair,Basis)
-            points = prepdata(r_ref,r_pair)
-            plot!(pl,points...,label = round(J,digits=3),lw = 1+4*abs(J);kwargs...)
+    inds = findall(x-> abs(x)>1E-14,couplings)
+
+    for (i,Ind) in enumerate(inds)
+    type,R_pair,J = PairTypes[Ind],PairList[Ind],couplings[Ind]
+        if colors === nothing
+            plotBond!(Basis.refSites[type.xi],R_pair,Basis,pl,label = round(J,digits=3),lw = 1+4*abs(J);kwargs...)
+        else
+            plotBond!(Basis.refSites[type.xi],R_pair,Basis,pl,label = round(J,digits=3),lw = 1+4*abs(J);kwargs...,color = colors[i])
         end
     end
     return pl
@@ -105,7 +105,7 @@ end
 
 
 function plotCouplings!(System,Basis,pl=current();kwargs...)
-    plotCorrelations!(System,Basis,System.couplings,pl,kwargs...)
+    plotCorrelations!(System,Basis,System.couplings,pl;kwargs...)
 end
 
 function plotBond!(R1::Rvec,R2::Rvec,Basis::Basis_Struct,pl=current();kwargs...)
