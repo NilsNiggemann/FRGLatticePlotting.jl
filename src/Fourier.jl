@@ -70,7 +70,10 @@ end
 
 @inline function FourierTransform(k::AbstractVector,Chi_R, NCell,pairs,Rij_vec)
     Chi_k = 0.
-    for (p,Rij) in zip(pairs,Rij_vec)
+    # @inbounds @simd for (p,Rij) in zip(pairs,Rij_vec)
+    @inbounds @simd for i in eachindex(pairs,Rij_vec)
+        p = pairs[i]
+        Rij = Rij_vec[i]
         Chi_k += cos(dot(k, Rij)) * Chi_R[p]
     end
     return 1/NCell * Chi_k
@@ -99,16 +102,20 @@ end
 
 """Returns 3D Fourier trafo"""
 function Fourier3D(Chi_R::AbstractArray,Lattice::AbstractLattice;res=50,ext = pi,minext = -ext)
-    karray = range(minext,stop = ext,length = res)
-    Chi_k = zeros(res,res,res)
+    k = range(minext,stop = ext,length = res)
+    k, Fourier3D(Chi_R,Lattice,k,k,k)
+end
 
-    Threads.@threads for iz in 1:res
-        kz = karray[iz]
-        for (iy,ky) in enumerate(karray),(ix,kx) in enumerate(karray)
+function Fourier3D(Chi_R::AbstractArray,Lattice::AbstractLattice,kx_vec::AbstractVector,ky_vec::AbstractVector,kz_vec::AbstractVector)
+    Chi_k = zeros(length(kx_vec),length(ky_vec),length(kz_vec))
+
+    Threads.@threads for iz in eachindex(kz_vec)
+        kz = kz_vec[iz]
+        for (iy,ky) in enumerate(ky_vec),(ix,kx) in enumerate(kx_vec)
             Chi_k[ix,iy,iz] = FourierTransform(SA[kx,ky,kz],Chi_R,Lattice)
         end
     end
-    return karray,Chi_k
+    return Chi_k
 end
 ##
 
