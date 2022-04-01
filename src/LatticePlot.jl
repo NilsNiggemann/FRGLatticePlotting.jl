@@ -1,4 +1,3 @@
-export pairsPlot, plotSystem, plotCouplings!,plotCorrelations!,plotBond!,plotBonds!,plotDistBonds!,plotDistBonds
 
 """Plots sites in PairList."""
 function pairsPlot(PairList,Basis,pl = plot(size = (700,700),aspectratio = 1);colors = ("blue","red","black","cyan","yellow","green","pink","orange","lime","brown","grey"),color = "",colorBasis = false,kwargs...)
@@ -21,12 +20,12 @@ function pairsPlot(PairList,Basis,pl = plot(size = (700,700),aspectratio = 1);co
 end
 
 """Plot all sites and inequivalent pairs"""
-function plotSystem(System,Basis;plotAll = true,refSite = 0,markersize = 5,inequivColor = "green",inequivalpha = 0.5,plotBonds=true,plotCouplings=true,kwargs...)
+function plotSystem(System,Basis;plotAll = true,refSite = nothing,markersize = 5,inequivColor = "green",inequivalpha = 0.5,plotBonds=true,plotCouplings=true,bondColors = nothing,kwargs...)
     @unpack PairList,OnsitePairs = System
     indices = copy(OnsitePairs)
     push!(indices,length(PairList)) # get final index
     allpairs = unique!(SpinFRGLattices.sortedPairList(System.NLen,Basis)[1])
-    if refSite == 0
+    if refSite === nothing 
         plotpairs = unique(PairList)
     else
         # allpairs = unique!(generatePairSites(System.NLen,Basis,Basis.refSites[refSite]))
@@ -38,22 +37,26 @@ function plotSystem(System,Basis;plotAll = true,refSite = 0,markersize = 5,inequ
     plotBonds && plotDistBonds!(System,Basis)
     plotAll && pairsPlot(plotpairs,Basis,pl,color = inequivColor,alpha = inequivalpha,markersize = 2*markersize)
     
-    plotCouplings && plotCouplings!(System,Basis)
+    plotCouplings && plotCouplings!(System,Basis;refSite = refSite,colors = bondColors)
     return pl
 end
 
-function plotCorrelations!(System::Geometry,Basis::Basis_Struct,couplings::AbstractVector,pl::Plots.Plot=current();colors = nothing,kwargs...)
+function plotCorrelations!(System::Geometry,Basis::Basis_Struct,couplings::AbstractVector,pl::Plots.Plot=current();refSite = nothing,colors = nothing,kwargs...)
 
     @unpack PairTypes,PairList = System
     inds = findall(x-> abs(x)>1E-14,couplings)
 
     for (i,Ind) in enumerate(inds)
     type,R_pair,J = PairTypes[Ind],PairList[Ind],couplings[Ind]
-        if colors === nothing
-            plotBond!(Basis.refSites[type.xi],R_pair,Basis,pl,label = round(J,digits=3),lw = 1+4*abs(J);kwargs...)
-        else
-            plotBond!(Basis.refSites[type.xi],R_pair,Basis,pl,label = round(J,digits=3),lw = 1+4*abs(J);kwargs...,color = colors[i])
-        end
+
+        refSite in (nothing,type.xi) || continue
+
+        R_Ref = Basis.refSites[type.xi]
+        plotCoup!(col::Nothing) = plotBond!(R_Ref,R_pair,Basis,pl,label = round(J,digits=3),lw = 1+4*abs(J);kwargs...)
+        plotCoup!(col::Function) = plotBond!(R_Ref,R_pair,Basis,pl,label = round(J,digits=3),lw = 1+4*abs(J);kwargs...,col(J)...)
+        plotCoup!(col) = plotBond!(R_Ref,R_pair,Basis,pl,label = round(J,digits=3),lw = 1+4*abs(J);kwargs...,color = colors[i])
+
+        plotCoup!(colors)
     end
     return pl
 end

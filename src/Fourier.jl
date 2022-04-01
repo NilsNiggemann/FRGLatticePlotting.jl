@@ -1,5 +1,3 @@
-export AbstractLattice, LatticeInfo,FourierTransform, Fourier2D, equalTimeChiBeta, EnergyBeta, get_e_Chi, Chikplot, getFlow, plotFlow, plotMaxFlow,plotMaxFlow!,plotMaxFlow_fast, pointPath, fetchKPath, plotKpath,plotKpath!, pscatter!,pplot!,getkMax,Fourier3D
-
 struct FourierInfo{Dim}
     pairs::Vector{Int}
     Rij_vec::Vector{SVector{Dim,Float64}}
@@ -43,22 +41,6 @@ function PrecomputeFourier(UnitCell::AbstractVector{T},SiteList::AbstractVector{
     end
     return FourierInfo(pairs,Rij_vec)
 end
-
-# function FourierTransform(k::StaticVector,Chi_R, NCell,pairs,Rij_vec)
-#     Chi_k = 0. +0im
-#     for (p,Rij) in zip(pairs,Rij_vec)
-#         Chi_k += exp(1im * k' * Rij) * Chi_R[p]
-#     end
-#     return 1/NCell * real(Chi_k)
-# end
-
-# function FourierTransform(k::StaticVector,Chi_R, NCell,pairs,Rij_vec)
-#     Chi_k = 0.
-#     for (p,Rij) in zip(pairs,Rij_vec)
-#         Chi_k += cos(k' * Rij) * Chi_R[p]
-#     end
-#     return 1/NCell * Chi_k
-# end
 
 @inline function dot(v1::AbstractVector{T},v2::AbstractVector{T}) where T
     res = zero(T)
@@ -316,3 +298,11 @@ plotKpath(args...;kwargs...) = plotKpath!(plot(),args...;kwargs...)
 pscatter!(pArray;kwargs...) = scatter!(Tuple([p[i] for p in pArray] for i in 1:length(pArray[1]));kwargs...)
 pscatter(pArray;kwargs...) = scatter(Tuple([p[i] for p in pArray] for i in 1:length(pArray[1]));kwargs...)
 pplot!(pArray;kwargs...) = plot!(Tuple(p for p in pArray);kwargs...)
+
+# planes for Fourier space
+@inline hhlplane(x,z) = SA[x,x,z]
+@inline xyplane(x,y) = SA[x,y]
+@inline zzerocut(x,y) = SA[x,y,0]
+@inline function sphereplane(origin,radius)
+    sphere(θ,ϕ) = radius*SA[sin(θ)*cos(ϕ), sin(θ)*sin(ϕ),cos(θ)] +origin
+end
