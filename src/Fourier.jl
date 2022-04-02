@@ -306,3 +306,4 @@ pplot!(pArray;kwargs...) = plot!(Tuple(p for p in pArray);kwargs...)
 @inline function sphereplane(origin,radius)
     sphere(θ,ϕ) = radius*SA[sin(θ)*cos(ϕ), sin(θ)*sin(ϕ),cos(θ)] +origin
 end
+hhllabels() = Dict([:xlabel => L"[hh0]",:ylabel => L"[00l]"])
