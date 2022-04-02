@@ -240,6 +240,11 @@ function getkMax(Chi_R,Lattice::LatticeInfo,regionfunc::Function;kwargs...)
     return regionfunc(k1,k2)
 end
 
+function getkMax(Chi_R,Lattice::LatticeInfo;kwargs...)
+    k1,k2 = getkMax(Fourier3D(Chi_R,Lattice;kwargs...)...)
+    return regionfunc(k1,k2)
+end
+
 function plotMaxFlow_fast(Chi_LR,Lambdas,Lattice,regionfunc::Function,pl = plot();  res = 90,ext = pi,xmax=1.,method = plot!,kwargs...)
     flow = similar(Lambdas)
     flowEnd = argmin(Lambdas)
