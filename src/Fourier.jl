@@ -241,8 +241,9 @@ function getkMax(Chi_R,Lattice::LatticeInfo,regionfunc::Function;kwargs...)
 end
 
 function getkMax(Chi_R,Lattice::LatticeInfo;kwargs...)
-    k1,k2 = getkMax(Fourier3D(Chi_R,Lattice;kwargs...)...)
-    return regionfunc(k1,k2)
+    dim = getDim(Lattice.Basis)
+    dim == 3 && return getkMax(Fourier3D(Chi_R,Lattice;kwargs...)...)
+    dim == 2 && return getkMax(Fourier2D(Chi_R,Lattice,xyplane;kwargs...)...)
 end
 
 function plotMaxFlow_fast(Chi_LR,Lambdas,Lattice,regionfunc::Function,pl = plot();  res = 90,ext = pi,xmax=1.,method = plot!,kwargs...)
