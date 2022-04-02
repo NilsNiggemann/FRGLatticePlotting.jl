@@ -12,7 +12,7 @@ module FRGLatticePlotting
     
     
     include("Tests/FourierTest.jl")
-    export test_fourier_onsite,test_fourier_pairs,
+    export test_fourier_onsite,test_fourier_pairs
 
     
 end # module
