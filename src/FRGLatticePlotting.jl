@@ -4,12 +4,13 @@ module FRGLatticePlotting
     include("Fourier.jl")
     export AbstractLattice, LatticeInfo,FourierTransform, Fourier2D, equalTimeChiBeta, EnergyBeta, get_e_Chi, Chikplot, getFlow, plotFlow, plotMaxFlow,plotMaxFlow!,plotMaxFlow_fast, pointPath, fetchKPath, plotKpath,plotKpath!, pscatter!,pplot!,getkMax,Fourier3D
 
-    export hhlplane,xyplane,zzerocut,sphereplane,hhllabels
     
     include("LatticePlot.jl")
     
     export pairsPlot, plotSystem, plotCouplings!,plotCorrelations!,plotBond!,plotBonds!,plotDistBonds!,plotDistBonds
     
+    include("helpers.jl")
+    export hhlplane,xyplane,zzerocut,sphereplane,hhllabels,strd,strd3
     
     include("Tests/FourierTest.jl")
     export test_fourier_onsite,test_fourier_pairs

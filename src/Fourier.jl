@@ -74,7 +74,7 @@ function Fourier2D(Chi_R::AbstractArray,x::AbstractVector,y::AbstractVector, reg
     Chi_k = zeros(length(x),length(y))
 
     Threads.@threads for j in eachindex(y)
-        kj = x[j]
+        kj = y[j]
         for (i,ki) in enumerate(x)
             Chi_k[i,j] = FourierTransform(regionfunc(ki,kj),Chi_R,Lattice)
         end
@@ -305,11 +305,3 @@ pscatter!(pArray;kwargs...) = scatter!(Tuple([p[i] for p in pArray] for i in 1:l
 pscatter(pArray;kwargs...) = scatter(Tuple([p[i] for p in pArray] for i in 1:length(pArray[1]));kwargs...)
 pplot!(pArray;kwargs...) = plot!(Tuple(p for p in pArray);kwargs...)
 
-# planes for Fourier space
-@inline hhlplane(x,z) = SA[x,x,z]
-@inline xyplane(x,y) = SA[x,y]
-@inline zzerocut(x,y) = SA[x,y,0]
-@inline function sphereplane(origin,radius)
-    sphere(θ,ϕ) = radius*SA[sin(θ)*cos(ϕ), sin(θ)*sin(ϕ),cos(θ)] +origin
-end
-hhllabels() = Dict([:xlabel => L"[hh0]",:ylabel => L"[00l]"])
