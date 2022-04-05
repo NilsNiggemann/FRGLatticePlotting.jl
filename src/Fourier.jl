@@ -77,6 +77,7 @@ function Fourier2D(Chi_R::AbstractArray,x::AbstractVector,y::AbstractVector, reg
         kj = y[j]
         for (i,ki) in enumerate(x)
             Chi_k[i,j] = FourierTransform(regionfunc(ki,kj),Chi_R,Lattice)
+            isnan(Chi_k[i,j]) && println((i,j,ki,kj))
         end
     end
     return Chi_k
@@ -206,29 +207,35 @@ function plotFlow(k::StaticArray,Chi_LR,Lambdas,Lattice,pl = plot();method = plo
     return pl
 end 
 
-function plotMaxFlow(Chi_LR,Lambdas,Lattice,regionfunc::Function,pl = plot();  res = 30,ext = pi,xmax=1.,method = plot!,kwargs...)
-    flow = similar(Lambdas)
-    FT(Chi) = maximum(Fourier2D(Chi,regionfunc,Lattice,res = res,ext=ext)[2])
-    for i in eachindex(Lambdas)
-        flow[i] =  @views FT(Chi_LR[i,:])
+function getFullFourier(Lattice::LatticeInfo{Basis_Struct_2D,Rvec_2D,F,2};kwargs...) where {F} 
+    @inline FT(Chi) = Fourier2D(Chi,xyplane,Lattice;kwargs...)
+end
+function getFullFourier(Lattice::LatticeInfo{Basis_Struct_3D,Rvec_3D,F,3};kwargs...) where {F} 
+    @inline FT(Chi) = Fourier3D(Chi,Lattice;kwargs...)
+end
+
+function getMaxFlow(Chi_LR::AbstractMatrix,Lambdas,Lattice::LatticeInfo;  res = 50,ext = 4pi,max=maximum(Lambdas))
+    index = findfirst(<=(max),Lambdas) #Todo: make this work when lambda is inversely sorted
+    Lamnew = Lambdas[index:end]
+    flow = similar(Lamnew)
+    Chislice = Chi_LR[index:end,:]'
+    FT(Chi) = maximum(getFullFourier(Lattice,res = res,ext=ext)(Chi)[2])
+    for i in eachindex(Lamnew)
+        flow[i] = @views FT(Chislice[:,i])
     end
+    return Lamnew,flow
+end
+
+function plotMaxFlow(Chi_LR::AbstractMatrix,Lambdas,Lattice,pl = plot();  res = 50,ext = 4pi,xmax=1.,method = plot!,kwargs...) where {F}
+    Lambdas,flow = getMaxFlow(Chi_LR,Lambdas,Lattice;  res = res,ext = ext)
+
     method(pl,Lambdas,flow, xlims = (0.,xmax);kwargs...)
     return pl
 end
 
-function plotMaxFlow(Chi_LR,Lambdas,Lattice::LatticeInfo{Basis_Struct_3D,Rvec_3D,F,3},pl = plot();  res = 30,ext = pi,xmax=1.,method = plot!,kwargs...) where {F}
-    flow = similar(Lambdas)
-    FT(Chi) = maximum(Fourier3D(Chi,Lattice,res = res,ext=ext)[2])
-    for i in eachindex(Lambdas)
-        flow[i] =  @views FT(Chi_LR[i,:])
-    end
-    method(pl,Lambdas,flow, xlims = (0.,xmax);kwargs...)
-    return pl
-end
+plotMaxFlow!(pl,Chi_LR,Lambdas,Lattice;kwargs...) = plotMaxFlow(Chi_LR,Lambdas,Lattice,pl;kwargs...)
 
-plotMaxFlow!(pl,Chi_LR,Lambdas,Lattice,regionfunc::Function;kwargs...) = plotMaxFlow(Chi_LR,Lambdas,Lattice,regionfunc,pl;kwargs...)
-
-plotMaxFlow!(Chi_LR,Lambdas,Lattice,regionfunc::Function;kwargs...) = plotMaxFlow(Chi_LR,Lambdas,Lattice,regionfunc,current();kwargs...)
+plotMaxFlow!(Chi_LR,Lambdas,Lattice;kwargs...) = plotMaxFlow(Chi_LR,Lambdas,Lattice,current();kwargs...)
 
 function getkMax(k::AbstractVector,Chik::AbstractMatrix)
     ik1,ik2 = Tuple(argmax(Chik))
