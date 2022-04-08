@@ -50,33 +50,48 @@ end
     return res
 end
 
+@inline function FourierTransform_prec(k::AbstractVector,Chi_R, NCell,pairs,Rij_vec)
+    Chi_k = 0.
+    # @inbounds @simd for (p,Rij) in zip(pairs,Rij_vec)
+    @inbounds @simd for i in eachindex(pairs,Rij_vec)
+        p = pairs[i]
+        Rij = Rij_vec[i]
+        Chi_k += cos(dot(k,Rij)) * Chi_R[p]
+    end
+    return 1/NCell * Chi_k
+end
+
 @inline function FourierTransform(k::AbstractVector,Chi_R, NCell,pairs,Rij_vec)
     Chi_k = 0.
     # @inbounds @simd for (p,Rij) in zip(pairs,Rij_vec)
     @inbounds @simd for i in eachindex(pairs,Rij_vec)
         p = pairs[i]
         Rij = Rij_vec[i]
-        Chi_k += cos(dot(k, Rij)) * Chi_R[p]
+        
+        Chi_k += cos_fast(dot(k,Rij)) * Chi_R[p]
     end
     return 1/NCell * Chi_k
 end
 
+
 @inline FourierTransform(k,Chi_R, Lattice::AbstractLattice) = FourierTransform(k,Chi_R, Lattice.Basis.NCell,Lattice.FourierInfos.pairs,Lattice.FourierInfos.Rij_vec) 
 
+@inline FourierTransform_prec(k,Chi_R, Lattice::AbstractLattice) = FourierTransform_prec(k,Chi_R, Lattice.Basis.NCell,Lattice.FourierInfos.pairs,Lattice.FourierInfos.Rij_vec) 
+
 """Returns 2D Fourier trafo in plane as specified by the "regionfunc" function. Eg for a plot in the xy plane we can use plane = (ki,kj) -> SA[ki,kj] """
-function Fourier2D(Chi_R::AbstractArray,regionfunc::Function,Lattice::AbstractLattice;res=100,ext = pi,minext = -ext)
+function Fourier2D(Chi_R::AbstractArray,regionfunc::Function,Lattice::AbstractLattice;res=100,ext = pi,minext = -ext,kwargs...)
     karray = range(minext,stop = ext,length = res)
-    Chi_k = Fourier2D(Chi_R::AbstractArray,karray,karray ,regionfunc::Function,Lattice::AbstractLattice)
+    Chi_k = Fourier2D(Chi_R,karray,karray ,regionfunc,Lattice;kwargs...)
     return karray,Chi_k
 end
 
-function Fourier2D(Chi_R::AbstractArray,x::AbstractVector,y::AbstractVector, regionfunc::Function,Lattice::AbstractLattice)
+function Fourier2D(Chi_R::AbstractArray,x::AbstractVector,y::AbstractVector, regionfunc::Function,Lattice::AbstractLattice;fast = true)
     Chi_k = zeros(length(x),length(y))
-
+    FT = ifelse(fast,FourierTransform,FourierTransform_prec)
     Threads.@threads for j in eachindex(y)
         kj = y[j]
         for (i,ki) in enumerate(x)
-            Chi_k[i,j] = FourierTransform(regionfunc(ki,kj),Chi_R,Lattice)
+            Chi_k[i,j] = FT(regionfunc(ki,kj),Chi_R,Lattice)
             isnan(Chi_k[i,j]) && println((i,j,ki,kj))
         end
     end
@@ -84,18 +99,18 @@ function Fourier2D(Chi_R::AbstractArray,x::AbstractVector,y::AbstractVector, reg
 end
 
 """Returns 3D Fourier trafo"""
-function Fourier3D(Chi_R::AbstractArray,Lattice::AbstractLattice;res=50,ext = pi,minext = -ext)
+function Fourier3D(Chi_R::AbstractArray,Lattice::AbstractLattice;res=50,ext = pi,minext = -ext,kwargs...)
     k = range(minext,stop = ext,length = res)
-    k, Fourier3D(Chi_R,Lattice,k,k,k)
+    k, Fourier3D(Chi_R,Lattice,k,k,k;kwargs...)
 end
 
-function Fourier3D(Chi_R::AbstractArray,Lattice::AbstractLattice,kx_vec::AbstractVector,ky_vec::AbstractVector,kz_vec::AbstractVector)
+function Fourier3D(Chi_R::AbstractArray,Lattice::AbstractLattice,kx_vec::AbstractVector,ky_vec::AbstractVector,kz_vec::AbstractVector;fast = true)
     Chi_k = zeros(length(kx_vec),length(ky_vec),length(kz_vec))
-
+    FT = ifelse(fast,FourierTransform,FourierTransform_prec)
     Threads.@threads for iz in eachindex(kz_vec)
         kz = kz_vec[iz]
         for (iy,ky) in enumerate(ky_vec),(ix,kx) in enumerate(kx_vec)
-            Chi_k[ix,iy,iz] = FourierTransform(SA[kx,ky,kz],Chi_R,Lattice)
+            Chi_k[ix,iy,iz] = FT(SA[kx,ky,kz],Chi_R,Lattice)
         end
     end
     return Chi_k

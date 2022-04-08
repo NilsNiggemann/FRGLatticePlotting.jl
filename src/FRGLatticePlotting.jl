@@ -1,6 +1,8 @@
 module FRGLatticePlotting
     using SpinFRGLattices,Parameters,StaticArrays,LaTeXStrings,Plots
 
+    using SLEEFPirates:cos_fast
+
     include("Fourier.jl")
     export AbstractLattice, LatticeInfo,FourierTransform, Fourier2D, equalTimeChiBeta, EnergyBeta, get_e_Chi, Chikplot, getFlow, plotFlow, getMaxFlow, plotMaxFlow,plotMaxFlow!,plotMaxFlow_fast, pointPath, fetchKPath, plotKpath,plotKpath!, pscatter!,pplot!,getkMax,Fourier3D
 
