@@ -152,3 +152,12 @@ plotDistBonds!(Site::Rvec,Basis,pl = current();kwargs...) = plotBonds!(Site,getB
 plotDistBonds!(System::Geometry,Basis::Basis_Struct,pl = current();kwargs...) = plotDistBonds!(generatePairSites(System.NLen,Basis),Basis,pl = current();kwargs...)
 
 plotDistBonds(System::Geometry,Basis::Basis_Struct;kwargs...) = plotDistBonds!(generatePairSites(System.NLen,Basis),Basis,pl = plot();kwargs...)
+
+
+function getVertexR(Vertex::AbstractVector,Lattice)
+    @unpack Basis,PairList,PairTypes = Lattice
+    @unpack refSites = Basis
+    norm(i) = dist(refSites[PairTypes[i].xi],PairList[i],Basis)
+    norms = norm.(eachindex(PairList))
+    return norms,Vertex
+end

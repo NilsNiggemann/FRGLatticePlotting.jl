@@ -42,6 +42,12 @@ end
 function DimerResponse(Chi1,Chi2,delta)
     return @. (Chi1 - Chi2) / (Chi1 + Chi2) / delta
 end
+function DimerResponse(R1::Rvec,R2::Rvec,R1prime::Rvec,R2prime::Rvec,Chi_LR,delta,Lattice::LatticeInfo)
+    Pair1,Pair2 = getPair(R1,R2,Lattice),getPair(R1prime,R2prime,Lattice)
+    @views Chi1 = Chi_LR[:,Pair1]
+    @views Chi2 = Chi_LR[:,Pair2]
+    DimerResponse(Chi1,Chi2,delta)
+end
 function DimerResponse(R1::Rvec,R2::Rvec,UnitCellTranslation::StaticVector,Chi_LR,delta,Lattice::LatticeInfo)
     Pair1,Pair2 = getPairs(R1,R2,UnitCellTranslation,Lattice)
     @views Chi1 = Chi_LR[:,Pair1]

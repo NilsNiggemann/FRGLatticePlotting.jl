@@ -9,11 +9,12 @@ module FRGLatticePlotting
     
     include("LatticePlot.jl")
     
-    export pairsPlot, plotSystem, plotCouplings!,plotCorrelations!,plotBond!,plotBonds!,plotDistBonds!,plotDistBonds
+    export pairsPlot, plotSystem, plotCouplings!,plotCorrelations!,plotBond!,plotBonds!,plotDistBonds!,plotDistBonds,getVertexR
     
     include("helpers.jl")
     export hhlplane,xyplane,zzerocut,sphereplane,hhllabels,strd,strd3,getPairs,DimerResponse,allOccurIn,findNames,NameFilter,OnlyIndex,getNumberFromName,stringLatex
     
+
     include("Tests/FourierTest.jl")
     export test_fourier_onsite,test_fourier_pairs
 
