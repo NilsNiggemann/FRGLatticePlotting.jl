@@ -42,6 +42,8 @@ end
 function DimerResponse(Chi1,Chi2,delta)
     return @. (Chi1 - Chi2) / (Chi1 + Chi2) / delta
 end
+
+
 function DimerResponse(R1::Rvec,R2::Rvec,R1prime::Rvec,R2prime::Rvec,Chi_LR,delta,Lattice::LatticeInfo)
     Pair1,Pair2 = getPair(R1,R2,Lattice),getPair(R1prime,R2prime,Lattice)
     @views Chi1 = Chi_LR[:,Pair1]
@@ -55,10 +57,15 @@ function DimerResponse(R1::Rvec,R2::Rvec,UnitCellTranslation::StaticVector,Chi_L
     DimerResponse(Chi1,Chi2,delta)
 end
 
-function DimerResponse(R1::Rvec,R2::Rvec,Chi_LR::AbstractMatrix,Chi_LRNew::AbstractMatrix,delta,Lattice::LatticeInfo)
+
+function DimerResponse_Keles(Chi1,Chi2,delta)
+    return @. (Chi1 - Chi2) / (Chi2) / delta
+end
+
+function DimerResponse_Keles(R1::Rvec,R2::Rvec,Chi_LR::AbstractMatrix,Chi_LRNew::AbstractMatrix,delta,Lattice::LatticeInfo)
     Chiold = DimerFlow(R1,R2,Chi_LR,Lattice)
     ChiNew = DimerFlow(R1,R2,Chi_LRNew,Lattice)
-    DimerResponse(ChiNew,Chiold,delta)
+    DimerResponse_Keles(ChiNew,Chiold,delta)
 end
 
 function DimerFlow(R1::Rvec,R2::Rvec,Chi_LR::AbstractMatrix,Lattice::LatticeInfo)
