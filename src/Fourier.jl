@@ -18,8 +18,9 @@ abstract type AbstractLattice end
 end
 LatticeInfo(System,Mod::Module,PTI =Mod.pairToInequiv ) = LatticeInfo(System=System,Basis = Mod.Basis,pairToInequiv = PTI)
 
-getDim(B::Basis_Struct_2D) = 2
-getDim(B::Basis_Struct_3D) = 3
+getDim(::Basis_Struct_2D) = 2
+getDim(::Basis_Struct_3D) = 3
+getDim(L::LatticeInfo) = getDim(L.Basis)
 
 function PrecomputeFourier(UnitCell::AbstractVector{T},SiteList::AbstractVector{T},PairList::AbstractVector{T},PairTypes,pairToInequiv,Basis) where T <: Rvec
     Rij_vec = SVector{getDim(Basis),Float64}[]
@@ -252,9 +253,11 @@ plotMaxFlow!(pl,Chi_LR,Lambdas,Lattice;kwargs...) = plotMaxFlow(Chi_LR,Lambdas,L
 
 plotMaxFlow!(Chi_LR,Lambdas,Lattice;kwargs...) = plotMaxFlow(Chi_LR,Lambdas,Lattice,current();kwargs...)
 
-function getkMax(k::AbstractVector,Chik::AbstractMatrix)
-    ik1,ik2 = Tuple(argmax(Chik))
-    return k[ik1],k[ik2]
+function getkMax(Chi_R::AbstractVector,Lattice::LatticeInfo{BT,RT,FuncT,Dim};  res = 50,ext = 4pi) where {BT,RT,FuncT,Dim}
+    FT = getFullFourier(Lattice,res = res,ext=ext)
+    k,Chik = FT(Chi_R)
+    maxIndex = argmax(Chik)
+    return SVector{Dim,Float64}([k[i] for i in Tuple(maxIndex)])
 end
 
 function getkMax(Chi_R,Lattice::LatticeInfo,regionfunc::Function;kwargs...)
