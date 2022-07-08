@@ -16,7 +16,8 @@ abstract type AbstractLattice end
     pairToInequiv::FunctionType
     FourierInfos::FourierInfo{Dim} = PrecomputeFourier(UnitCell,SiteList,PairList,PairTypes,pairToInequiv,Basis)
 end
-LatticeInfo(System,Mod::Module,PTI =Mod.pairToInequiv ) = LatticeInfo(System=System,Basis = Mod.Basis,pairToInequiv = PTI)
+LatticeInfo(System::Geometry,Basis::Basis_Struct,pairToInequiv::Function ) = LatticeInfo(;System,Basis,pairToInequiv)
+LatticeInfo(System::Geometry,Mod::Module,PTI =Mod.pairToInequiv ) = LatticeInfo(System=System,Basis = Mod.Basis,pairToInequiv = PTI)
 
 getDim(::Basis_Struct_2D) = 2
 getDim(::Basis_Struct_3D) = 3
