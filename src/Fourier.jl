@@ -89,12 +89,12 @@ end
 
 function Fourier2D(Chi_R::AbstractArray,x::AbstractVector,y::AbstractVector, regionfunc::Function,Lattice::AbstractLattice;fast = true)
     Chi_k = zeros(length(x),length(y))
-    FT = ifelse(fast,FourierTransform,FourierTransform_prec)
+    FT = fast ? FourierTransform : FourierTransform_prec
     Threads.@threads for j in eachindex(y)
         kj = y[j]
         for (i,ki) in enumerate(x)
             Chi_k[i,j] = FT(regionfunc(ki,kj),Chi_R,Lattice)
-            isnan(Chi_k[i,j]) && println((i,j,ki,kj))
+            # isnan(Chi_k[i,j]) && println((i,j,ki,kj))
         end
     end
     return Chi_k
@@ -108,7 +108,7 @@ end
 
 function Fourier3D(Chi_R::AbstractArray,Lattice::AbstractLattice,kx_vec::AbstractVector,ky_vec::AbstractVector,kz_vec::AbstractVector;fast = true)
     Chi_k = zeros(length(kx_vec),length(ky_vec),length(kz_vec))
-    FT = ifelse(fast,FourierTransform,FourierTransform_prec)
+    FT = fast ? FourierTransform : FourierTransform_prec
     Threads.@threads for iz in eachindex(kz_vec)
         kz = kz_vec[iz]
         for (iy,ky) in enumerate(ky_vec),(ix,kx) in enumerate(kx_vec)
@@ -211,8 +211,8 @@ Chikplot(k,Chi_k; kwargs...) = Chikplot(k,k,Chi_k; kwargs...)
 ##
 function getFlow(k::StaticArray,Chi_LR,Lambdas,Lattice)
     flow = similar(Lambdas)
-    FT(k,Chi) = FourierTransform(k,Chi,Lattice)
-    for i in eachindex(Lambdas)
+    @inline FT(k,Chi) = FourierTransform(k,Chi,Lattice)
+    for i in eachindex(Lambdas,flow)
         flow[i] =  @views FT(k,Chi_LR[i,:])
     end
     return flow
