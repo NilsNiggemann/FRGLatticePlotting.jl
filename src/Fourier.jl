@@ -80,6 +80,11 @@ end
 
 @inline FourierTransform_prec(k,Chi_R, Lattice::AbstractLattice) = FourierTransform_prec(k,Chi_R, Lattice.Basis.NCell,Lattice.FourierInfos.pairs,Lattice.FourierInfos.Rij_vec) 
 
+"""Constructs a function χ(q) for given real space chi and the lattice structure and returns it"""
+function getFourier(Chi_R::AbstractArray,Lattice::AbstractLattice)
+    @inline FT(q) = FourierTransform(q,Chi_R,Lattice.Basis.NCell,Lattice.FourierInfos.pairs,Lattice.FourierInfos.Rij_vec)
+end
+
 """Returns 2D Fourier trafo in plane as specified by the "regionfunc" function. Eg for a plot in the xy plane we can use plane = (ki,kj) -> SA[ki,kj] """
 function Fourier2D(Chi_R::AbstractArray,regionfunc::Function,Lattice::AbstractLattice;res=100,ext = pi,minext = -ext,kwargs...)
     karray = range(minext,stop = ext,length = res)
@@ -331,3 +336,14 @@ pscatter!(pArray;kwargs...) = scatter!(Tuple([p[i] for p in pArray] for i in 1:l
 pscatter(pArray;kwargs...) = scatter(Tuple([p[i] for p in pArray] for i in 1:length(pArray[1]));kwargs...)
 pplot!(pArray;kwargs...) = plot!(Tuple(p for p in pArray);kwargs...)
 
+##
+"""Compute correlation length according to Sandvik's definition
+A. W. Sandvik, AIP Conf. Proc. 1297, 135 (2010).
+"""
+CorrelationLength(Chi::Function,Q::AbstractVector,qa::AbstractVector) = 1/norm(Q-qa) * sqrt(Chi(Q)/Chi(qa)-1)
+
+function CorrelationLength(Chi::AbstractArray,Q::AbstractVector,direction::AbstractVector,Lattice::LatticeInfo) 
+    ChiFunc = getFourier(Chi,Lattice)
+    qa = Q+direction/norm(direction) * 2pi/Lattice.System.NLen
+    CorrelationLength(ChiFunc,Q,qa)
+end
