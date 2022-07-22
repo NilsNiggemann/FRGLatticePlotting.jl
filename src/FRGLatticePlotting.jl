@@ -12,7 +12,7 @@ module FRGLatticePlotting
     export pairsPlot, plotSystem, plotCouplings!,plotCorrelations!,plotBond!,plotBonds!,plotDistBonds!,plotDistBonds,getVertexR
     
     include("helpers.jl")
-    export hhlplane,xyplane,zzerocut,sphereplane,hhllabels,strd,strd3,getPairs,DimerResponse,DimerResponse_Keles,allOccurIn,findNames,NameFilter,OnlyIndex,getNumberFromName,stringLatex
+    export hhlplane,normalTohhlplane,xyplane,zzerocut,sphereplane,hhllabels,xylabels,zzerolabels,normalTohhllabels,strd,strd3,getPairs,DimerResponse,DimerResponse_Keles,allOccurIn,findNames,NameFilter,OnlyIndex,getNumberFromName,stringLatex
     
 
     include("Tests/FourierTest.jl")
