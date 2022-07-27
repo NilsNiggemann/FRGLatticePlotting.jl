@@ -20,7 +20,7 @@ end
 
 # planes for Fourier space
 @inline hhlplane(x,z) = SA[x,x,z]
-@inline normalTohhlplane(x,z) = SA[x-z,x+z,0]
+@inline normalTohhlplane(x,y) = SA[x,-x,y]
 @inline xyplane(x,y) = SA[x,y]
 @inline zzerocut(x,y) = SA[x,y,0]
 @inline function sphereplane(origin,radius)
@@ -29,8 +29,7 @@ end
 xylabels() = Dict([:xlabel => L"qx",:ylabel => L"qy"])
 zzerolabels() = Dict([:xlabel => L"[h00]",:ylabel => L"[0l0]"])
 hhllabels() = Dict([:xlabel => L"[hh0]",:ylabel => L"[00l]"])
-normalTohhllabels() = Dict([:xlabel => L"[hh0]",:ylabel => L"[\bar{l}l0]"])
-
+normalTohhllabels() = (xlabel = L"[h\bar{h}0]",ylabel = L"[00l]")
 
 getPair(R1::Rvec,R2::Rvec,Lattice) = SpinFRGLattices.pairNumber(R1,R2,Lattice.System.PairList,Lattice.System.PairTypes,Lattice.Basis,Lattice.pairToInequiv)
 
