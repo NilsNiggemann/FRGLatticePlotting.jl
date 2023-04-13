@@ -20,7 +20,19 @@ function pairsPlot(PairList,Basis,pl = plot(size = (700,700),aspectratio = 1);co
 end
 
 """Plot all sites and inequivalent pairs"""
-function plotSystem(System,Basis;plotAll = true,refSite = nothing,markersize = 5,inequivColor = "green",inequivalpha = 0.5,plotBonds=true,plotCouplings=true,bondColors = nothing,kwargs...)
+function plotSystem(System,Basis;
+    plotAll = true,
+    refSite = nothing,
+    markersize = 5,
+    inequivColor = "green",
+    inequivalpha = 0.5,
+    plotBonds=true,
+    plotCouplings=true,
+    CouplingColors = nothing,
+    bondlw = 5,
+    bondDist = Basis.NNdist,
+    Bondcolor = "black"
+    ,kwargs...)
     @unpack PairList,OnsitePairs = System
     indices = copy(OnsitePairs)
     push!(indices,length(PairList)) # get final index
@@ -34,10 +46,11 @@ function plotSystem(System,Basis;plotAll = true,refSite = nothing,markersize = 5
 
     plotAll || (allpairs = plotpairs)
     pl = pairsPlot(allpairs,Basis,markersize = markersize;kwargs...)
-    plotBonds && plotDistBonds!(System,Basis)
+    plotBonds && plotDistBonds!(allpairs,Basis;color = Bondcolor,lw = bondlw, minDist = bondDist-1e-3, maxDist = bondDist+1e-3)
+
     plotAll && pairsPlot(plotpairs,Basis,pl,color = inequivColor,alpha = inequivalpha,markersize = 2*markersize)
     
-    plotCouplings && plotCouplings!(System,Basis;refSite = refSite,colors = bondColors)
+    plotCouplings && plotCouplings!(System,Basis;refSite = refSite,colors = CouplingColors)
     return pl
 end
 
@@ -149,7 +162,10 @@ end
 
 plotDistBonds!(Site::Rvec,Basis,pl = current();kwargs...) = plotBonds!(Site,getBonds(Site,minDist,maxDist,Basis),Basis,pl;kwargs...)
 
-plotDistBonds!(System::Geometry,Basis::Basis_Struct,pl = current();kwargs...) = plotDistBonds!(generatePairSites(System.NLen,Basis),Basis,pl = current();kwargs...)
+function plotDistBonds!(System::Geometry,Basis::Basis_Struct,sites,pl = current();kwargs...)
+    println(sites)
+    plotDistBonds!(sites,Basis,pl = current();kwargs...)
+end
 
 plotDistBonds(System::Geometry,Basis::Basis_Struct;kwargs...) = plotDistBonds!(generatePairSites(System.NLen,Basis),Basis,pl = plot();kwargs...)
 
