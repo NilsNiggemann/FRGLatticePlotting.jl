@@ -29,31 +29,37 @@ function plotSystem(System,Basis;
     plotBonds=true,
     plotCouplings=true,
     CouplingColors = nothing,
-    bondlw = 5,
-    bondDist = Basis.NNdist,
-    Bondcolor = "black"
-    ,kwargs...)
-    @unpack PairList,OnsitePairs = System
+    bondlw = 7,
+    Bonds = [(minDist = Basis.NNdist-1e-3,maxDist = Basis.NNdist+1e-3,colorRGB = [0,0,0])],
+    allpairs = unique!(SpinFRGLattices.sortedPairList(System.NLen,Basis)[1]),
+    kwargs...)
+    (;PairList,OnsitePairs )= System
+    
     indices = copy(OnsitePairs)
     push!(indices,length(PairList)) # get final index
-    allpairs = unique!(SpinFRGLattices.sortedPairList(System.NLen,Basis)[1])
     if refSite === nothing 
         plotpairs = unique(PairList)
     else
         # allpairs = unique!(generatePairSites(System.NLen,Basis,Basis.refSites[refSite]))
         plotpairs = PairList[indices[refSite]:indices[refSite+1]]
     end
+    filter!(x-> x in allpairs,plotpairs)
 
     plotAll || (allpairs = plotpairs)
-    pl = pairsPlot(allpairs,Basis,markersize = markersize;kwargs...)
-    plotBonds && plotDistBonds!(allpairs,Basis;color = Bondcolor,lw = bondlw, minDist = bondDist-1e-3, maxDist = bondDist+1e-3)
+    pl = pairsPlot(allpairs,Basis,markersize = markersize,aspect_ratio=:equal;kwargs...)
+    if plotBonds
+        for b in Bonds
+            plotDistBonds!(allpairs,Basis,minDist = b.minDist, maxDist = b.maxDist,lw = bondlw,color = Plots.Colors.RGB((b.colorRGB./255)...))
+        end
+    end
+    # plotBonds && plotDistBonds!(allpairs,Basis;color = Bondcolor,lw = bondlw, minDist = bondDist-1e-3, maxDist = bondDist+1e-3)
 
     plotAll && pairsPlot(plotpairs,Basis,pl,color = inequivColor,alpha = inequivalpha,markersize = 2*markersize)
-    
+    pairsPlot([Basis.refSites[refSite]],Basis,pl,color = "darkred",markershape = :cross,markersize = 1.5*markersize)
+
     plotCouplings && plotCouplings!(System,Basis;refSite = refSite,colors = CouplingColors)
     return pl
 end
-
 function plotCorrelations!(System::Geometry,Basis::Basis_Struct,couplings::AbstractVector,pl::Plots.Plot=current();refSite = nothing,colors = nothing,kwargs...)
 
     @unpack PairTypes,PairList = System
