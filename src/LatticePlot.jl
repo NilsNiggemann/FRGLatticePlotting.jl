@@ -55,7 +55,7 @@ function plotSystem(System,Basis;
     # plotBonds && plotDistBonds!(allpairs,Basis;color = Bondcolor,lw = bondlw, minDist = bondDist-1e-3, maxDist = bondDist+1e-3)
 
     plotAll && pairsPlot(plotpairs,Basis,pl,color = inequivColor,alpha = inequivalpha,markersize = 2*markersize)
-    pairsPlot([Basis.refSites[refSite]],Basis,pl,color = "darkred",markershape = :cross,markersize = 1.5*markersize)
+    refSite !== nothing && pairsPlot([Basis.refSites[refSite]],Basis,pl,color = "darkred",markershape = :cross,markersize = 1.5*markersize)
 
     plotCouplings && plotCouplings!(System,Basis;refSite = refSite,colors = CouplingColors)
     return pl
