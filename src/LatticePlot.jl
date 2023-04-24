@@ -29,30 +29,40 @@ function plotSystem(System,Basis;
     plotBonds=true,
     plotCouplings=true,
     CouplingColors = nothing,
-    bondlw = 5,
-    bondDist = Basis.NNdist,
-    Bondcolor = "black"
-    ,kwargs...)
-    @unpack PairList,OnsitePairs = System
+    Bonds = [(minDist = Basis.NNdist-1e-3,maxDist = Basis.NNdist+1e-3,colorRGB = [0,0,0])],
+    bondlw = 7,
+    allpairs = unique!(SpinFRGLattices.sortedPairList(System.NLen,Basis)[1]),
+    kwargs...)
+    (;PairList,OnsitePairs )= System
+    
     indices = copy(OnsitePairs)
     push!(indices,length(PairList)) # get final index
-    allpairs = unique!(SpinFRGLattices.sortedPairList(System.NLen,Basis)[1])
     if refSite === nothing 
         plotpairs = unique(PairList)
     else
         # allpairs = unique!(generatePairSites(System.NLen,Basis,Basis.refSites[refSite]))
-        plotpairs = PairList[indices[refSite]:indices[refSite+1]]
+        plotpairs = PairList[indices[refSite]:indices[refSite+1]-1]
     end
+    filter!(x-> x in allpairs,plotpairs)
 
     plotAll || (allpairs = plotpairs)
-    pl = pairsPlot(allpairs,Basis,markersize = markersize;kwargs...)
-    plotBonds && plotDistBonds!(allpairs,Basis;color = Bondcolor,lw = bondlw, minDist = bondDist-1e-3, maxDist = bondDist+1e-3)
-
+    pl = pairsPlot(allpairs,Basis,markersize = markersize,aspect_ratio=:equal;kwargs...)
+    if plotBonds
+        if bondlw isa Real
+            bondlw = [bondlw for b in Bonds]
+        end
+        for (lw,b) in zip(bondlw,Bonds)
+            plotDistBonds!(allpairs,Basis,minDist = b.minDist, maxDist = b.maxDist;lw,color = Plots.Colors.RGB((b.colorRGB./255)...))
+        end
+    end
+    # plotBonds && plotDistBonds!(allpairs,Basis;color = Bondcolor,lw = bondlw, minDist = bondDist-1e-3, maxDist = bondDist+1e-3)
+    refSite !== nothing && pairsPlot([Basis.refSites[refSite]], Basis,pl,color = "black",markersize = 1.5*markersize,markershape = :cross)
     plotAll && pairsPlot(plotpairs,Basis,pl,color = inequivColor,alpha = inequivalpha,markersize = 2*markersize)
     
     plotCouplings && plotCouplings!(System,Basis;refSite = refSite,colors = CouplingColors)
     return pl
 end
+
 
 function plotCorrelations!(System::Geometry,Basis::Basis_Struct,couplings::AbstractVector,pl::Plots.Plot=current();refSite = nothing,colors = nothing,kwargs...)
 
