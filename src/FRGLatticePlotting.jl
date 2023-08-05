@@ -4,9 +4,12 @@ module FRGLatticePlotting
     include("LatticePlot.jl")
     export pairsPlot, plotSystem, plotBonds!,plotDistBonds!,plotDistBonds
 
-    GLMakie.activate!()
-    GLMakie.Makie.inline!(false)
+    
     using PrecompileTools
     include("precompile.jl")
 
+    function __init__()
+        GLMakie.activate!(inline=false)
+    end
+    
 end # module
