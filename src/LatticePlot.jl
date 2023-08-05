@@ -9,7 +9,7 @@ linesRvec!(Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = lines!(current_
 scatterRvec(Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = scatter(getPoint.(Rs,Ref(Basis)),args...;kwargs...)
 lineRvecs(Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = lines(getPoint.(Rs,Ref(Basis)),args...;kwargs...)
 
-function pairsPlot!(ax,PairList,Basis,args...;colors = [:black,:red,:blue,:cyan,:yellow,:green,:pink,:orange,:lime,:brown,:grey,:darkred],colorBasis = false,kwargs...)
+function pairsPlot!(ax,PairList,Basis,args...;colors = [:black,:red,:blue,:grey,:darkred,:pink,:orange,:lime,:cyan,:yellow,:green,:brown],colorBasis = false,kwargs...)
     uniquepairs = unique(PairList)
     
     inds = 
@@ -111,7 +111,7 @@ function getInspector(RvecList::AbstractVector{<:Rvec},Basis)
     function inspector(self, i, p)
         R = RvecList[i]
         r = round.(getPoint(R,Basis),digits=3)
-        string(getstring(R), " =\n",r)
+        latexstring(getstring(R), " →\n",r)
     end
     return inspector
 end
@@ -121,14 +121,15 @@ function getPairNumberInspector(PairList::AbstractVector{<:Rvec},Basis)
     function inspector(self, i, p)
         R = PairList[i]
         # r = round.(getPoint(R,Basis),digits=3)
-        string(getstring(R)," -> ",i)
+        latexstring(getstring(R)," → ",i)
     end
     return inspector
 end
 
 function getCorrelationInspector(J,R2)
+    R2str = getstring(R2)
     function inspector(self, i, p)
-        string("J(i,",getstring(R2)," = ",J)
+        latexstring("J_{ij}$(R2str)"," = ",J)
     end
     return inspector
 end
@@ -139,7 +140,7 @@ function plotSystem(System,Basis,args...;
     refSite = nothing,
     markersize = 20,
     inequivColor = :green,
-    inequivalpha = 0.7,
+    inequivalpha = 0.6,
     plotBonds=true,
     plotCouplings=true,
     colorBasis = false,
@@ -162,10 +163,6 @@ function plotSystem(System,Basis,args...;
 
     plotAll || (allpairs = plotpairs)
     fig,ax = getStandardFigure(first(plotpairs))
-    
-    if inspect 
-        DataInspector(fig)
-    end
 
     if plotBonds
         if bondlw isa Real
@@ -186,12 +183,15 @@ function plotSystem(System,Basis,args...;
     
     plotAll && pairsPlot!(ax,plotpairs,Basis,color = inequivColor,alpha = inequivalpha,markersize = 3.5*markersize,inspector_label = getPairNumberInspector(plotpairs,Basis);kwargs...)
 
-    pairsPlot!(ax,allpairs,Basis,markersize = markersize;inspector_label = getInspector(allpairs,Basis),inspectable = true,kwargs...)
+    pairsPlot!(ax,allpairs,Basis,markersize = markersize;colorBasis,inspector_label = getInspector(allpairs,Basis),inspectable = true,kwargs...)
 
-    refSite !== nothing && scatterRvec!(ax,[Basis.refSites[refSite]],Basis,color = :darkred,marker = '×',markersize = 5.0*markersize, inspector_label = (self,i,p) -> "refSite" )
+    refSite !== nothing && scatterRvec!(ax,[Basis.refSites[refSite]],Basis,color = :darkred,marker = '×',markersize = 5.0*markersize, inspector_label = (self,i,p) -> L"R_0" )
     
     # refSite !== nothing && scatterRvec!(ax,[Basis.refSites[refSite]], Basis)
-
+    
+    if inspect 
+        DataInspector(fig)
+    end
     return fig
 end
 
@@ -204,7 +204,7 @@ function plotCorrelations!(ax,System,Basis,Correlations::AbstractVector,args...;
     inds = findall(x-> abs(x)>minCorr,Correlations)
     Correlations = Correlations[inds]
     PairList = PairList[inds]
-    label(J) = string(round(J,digits=3))
+    label(J) = latexstring(round(J,digits=3))
 
     for i in eachindex(Correlations,PairList)
         J = Correlations[i]
@@ -212,7 +212,7 @@ function plotCorrelations!(ax,System,Basis,Correlations::AbstractVector,args...;
         R = PairList[i]
         linesRvec!(ax,[refSite,R],Basis;color,label = label(J),linewidth = linewidthscaling(J),inspector_label = getCorrelationInspector(J,R),args...,kwargs...)
     end
-    axislegend(ax)
+    axislegend(L"J_{ij}")
     return ax
     
 end
