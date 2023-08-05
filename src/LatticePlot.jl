@@ -1,22 +1,81 @@
 
-"""Plots sites in PairList."""
-function pairsPlot(PairList,Basis,pl = plot(size = (700,700),aspectratio = 1);colors = ("blue","red","black","cyan","yellow","green","pink","orange","lime","brown","grey"),color = "",colorBasis = false,kwargs...)
+getPoint(R::Rvec,Basis) = Point(getCartesian(R,Basis)) 
+Makie.scatter!(ax,Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = scatter!(ax,getPoint.(Rs,(Basis,)),args...;kwargs...)
+Makie.scatter!(Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = scatter!(current_axis(),getPoint.(Rs,(Basis,)),args...;kwargs...)
+
+Makie.lines!(ax,Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = lines!(ax,getPoint.(Rs,(Basis,)),args...;kwargs...)
+Makie.lines!(Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = lines!(current_axis(),getPoint.(Rs,(Basis,)),args...;kwargs...)
+
+Makie.scatter(Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = scatter(getPoint.(Rs,(Basis,)),args...;kwargs...)
+Makie.lines(Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = lines(getPoint.(Rs,(Basis,)),args...;kwargs...)
+
+function pairsPlot!(ax,PairList,Basis,args...;colors = (:blue,:red,:black,:cyan,:yellow,:green,:pink,:orange,:lime,:brown,:grey),colorBasis = false,kwargs...)
     uniquepairs = unique(PairList)
     
-    if color != ""
-        colors = Tuple(color for i in 1:Basis.NCell)
-    end
-    prepdata(x) = Tuple([i] for i in x)
-    for R in uniquepairs
-        if colorBasis # color each site differently according to basis
-            col = colors[R.b]
-        else 
-            col = colors[Basis.SiteType[R.b]]
+    colors = colors[colors[Basis.SiteType[R.b]] for R in uniquepairs] 
+
+    scatter!(ax,uniquepairs,color = colors,args...;kwargs...)
+end
+
+function getStandardFigure(::Rvec_2D)
+    fig = Figure(resolution = (800, 600))
+    ax = Axis(fig[1, 1],aspect = 1,xticks = SimpleTicks(),yticks = SimpleTicks(),xlabel = L"x", ylabel = L"y")
+    fig,ax
+end
+
+function getStandardFigure(::Rvec_3D)
+    fig = Figure(resolution = (800, 600))
+    ax = Axis3(fig[1, 1],aspect = (1,1,1),xticks = SimpleTicks(),yticks = SimpleTicks(),zticks = SimpleTicks(),xlabel = L"x", ylabel = L"y",zlabel = L"z")
+    fig,ax
+end
+
+function pairsPlot(PairList::AbstractVector{R},Basis,args...;kwargs...) where R <: Rvec
+    fig,ax = getStandardFigure(R)
+    plotSites!(ax,sites,Basis)
+    fig
+end
+
+function connectWithinDist(points::AbstractVector{P},dmin,dmax;tol = 1e-8) where {P <: Point}
+
+    missingPoint = Point((NaN for _ in first(points))...)
+    isMissingPoint(p) = any(isnan.(p))
+
+    connectedPoints = P[]
+    for p1 in points
+        for p2 in points
+            if dmin-tol < abs(norm(p1-p2) ) < dmax+tol
+                push!(connectedPoints,p1)
+                push!(connectedPoints,p2)
+            elseif isempty(connectedPoints) || !isMissingPoint(last(connectedPoints))
+                push!(connectedPoints,missingPoint)
+            end
         end
-        points = prepdata(getCartesian(R,Basis))
-        scatter!(pl,points,label = nothing,color = col;kwargs...)
     end
-    return pl
+    return connectedPoints
+end
+
+connectWithinDist(points::AbstractVector{Rvec},Basis,dmin,dmax) = connectWithinDist(getPoint.(points,Basis),dmin,dmax)
+"""
+
+    Plots bonds of specified length between sites in siteList   
+    ax,
+    SiteList::AbstractVector{<:Rvec},
+    Basis,
+    minDist::Real=0.,
+    maxDist::Real=Basis.NNdist,
+    kwargs...
+
+"""
+function plotDistBonds!(ax,SiteList::AbstractVector{<:Rvec},Basis,args...;minDist::Real=0., maxDist::Real=Basis.NNdist,kwargs...)
+    connectedPoints = connectWithinDist(SiteList,Basis,minDist,maxDist)
+    lines!(connectedPoints,color = (:black,1),linestyle = :solid;kwargs...)
+    return ax
+end
+
+function plotDistBonds(SiteList::AbstractVector{<:Rvec},Basis,args...;kwargs...)
+    fig,ax = getStandardFigure(R)
+    plotDistBonds!(ax,SiteList,Basis;minDist=minDist,maxDist=maxDist,args...,kwargs...)
+    fig
 end
 
 """Plot all sites and inequivalent pairs"""
@@ -24,7 +83,7 @@ function plotSystem(System,Basis;
     plotAll = true,
     refSite = nothing,
     markersize = 5,
-    inequivColor = "green",
+    inequivColor = :green,
     inequivalpha = 0.5,
     plotBonds=true,
     plotCouplings=true,
@@ -32,6 +91,7 @@ function plotSystem(System,Basis;
     Bonds = [(minDist = Basis.NNdist-1e-3,maxDist = Basis.NNdist+1e-3,colorRGB = [0,0,0])],
     bondlw = 7,
     allpairs = unique!(SpinFRGLattices.sortedPairList(System.NLen,Basis)[1]),
+    args...,
     kwargs...)
     (;PairList,OnsitePairs )= System
     
@@ -46,145 +106,24 @@ function plotSystem(System,Basis;
     filter!(x-> x in allpairs,plotpairs)
 
     plotAll || (allpairs = plotpairs)
-    pl = pairsPlot(allpairs,Basis,markersize = markersize,aspect_ratio=:equal;kwargs...)
+    fig,ax = getStandardFigure(first(plotpairs))
+
     if plotBonds
         if bondlw isa Real
             bondlw = [bondlw for b in Bonds]
         end
         for (lw,b) in zip(bondlw,Bonds)
-            plotDistBonds!(allpairs,Basis,minDist = b.minDist, maxDist = b.maxDist;lw,color = Plots.Colors.RGB((b.colorRGB./255)...))
+            plotDistBonds!(ax,allpairs,Basis,minDist = b.minDist, maxDist = b.maxDist;lw,color = Plots.Colors.RGB((b.colorRGB./255)...))
         end
     end
-    # plotBonds && plotDistBonds!(allpairs,Basis;color = Bondcolor,lw = bondlw, minDist = bondDist-1e-3, maxDist = bondDist+1e-3)
-    refSite !== nothing && pairsPlot([Basis.refSites[refSite]], Basis,pl,color = "black",markersize = 1.5*markersize,markershape = :cross)
-    plotAll && pairsPlot(plotpairs,Basis,pl,color = inequivColor,alpha = inequivalpha,markersize = 2*markersize)
-    refSite !== nothing && pairsPlot([Basis.refSites[refSite]],Basis,pl,color = "darkred",markershape = :cross,markersize = 1.5*markersize)
+    refSite !== nothing && pairsPlot!(ax,[Basis.refSites[refSite]], Basis,color = "black",markersize = 1.5*markersize,markershape = '×')
+
+    plotAll && pairsPlot!(ax,plotpairs,Basis,color = inequivColor,alpha = inequivalpha,markersize = 2*markersize)
+    refSite !== nothing && pairsPlot!(ax,[Basis.refSites[refSite]],Basis,color = "darkred",markershape = '×',markersize = 1.5*markersize)
 
     plotCouplings && plotCouplings!(System,Basis;refSite = refSite,colors = CouplingColors)
+
+    pairsPlot!(ax,allpairs,Basis,markersize = markersize;kwargs...)
+
     return pl
-end
-
-
-function plotCorrelations!(System::Geometry,Basis::Basis_Struct,couplings::AbstractVector,pl::Plots.Plot=current();refSite = nothing,colors = nothing,kwargs...)
-
-    @unpack PairTypes,PairList = System
-    inds = findall(x-> abs(x)>1E-14,couplings)
-
-    for (i,Ind) in enumerate(inds)
-    type,R_pair,J = PairTypes[Ind],PairList[Ind],couplings[Ind]
-
-        refSite in (nothing,type.xi) || continue
-
-        R_Ref = Basis.refSites[type.xi]
-        plotCoup!(col::Nothing) = plotBond!(R_Ref,R_pair,Basis,pl,label = round(J,digits=3),lw = 1+4*abs(J);kwargs...)
-        plotCoup!(col::Function) = plotBond!(R_Ref,R_pair,Basis,pl,label = round(J,digits=3),lw = 1+4*abs(J);kwargs...,col(J)...)
-        plotCoup!(col) = plotBond!(R_Ref,R_pair,Basis,pl,label = round(J,digits=3),lw = 1+4*abs(J);kwargs...,color = colors[i])
-
-        plotCoup!(colors)
-    end
-    return pl
-end
-
-@inline dim(B::Basis_Struct_2D) = 2
-@inline dim(B::Basis_Struct_3D) = 3
-
-"""Returns list of sites within bond length"""
-function getBonds(R::RType,minDist::Real,maxDist::Real,Basis::Basis_Struct) where RType <: Rvec
-    NN = RType[]
-    getLConst(x) = getLatticeConst(x,Basis)
-    maxN = div(maxDist,minimum(getLConst,1:dim(Basis)))+1
-
-    AllSites = generateLUnitCells(maxN,Basis,R)
-    for Rnew in AllSites
-        d = dist(R,Rnew,Basis)
-        if (isapprox(d,maxDist,atol = 1E-10) || d < maxDist) && d > minDist
-            push!(NN,Rnew)
-        end
-    end
-    return NN
-end
-
-getBonds(R::Rvec,maxDist::Real,Basis::Basis_Struct) = getBonds(R,0.,maxDist,Basis)
-
-function getLatticeConst(direction,Basis::Basis_Struct_3D)
-    if direction == 1
-        R2 = Rvec(1,0,0,1)
-    elseif direction == 2
-        R2 = Rvec(0,1,0,1)
-    elseif direction == 3
-        R2 = Rvec(0,0,1,1)
-    else 
-        error("direction must be <3")
-    end
-    dist(Rvec(0,0,0,1),R2,Basis)
-end
-
-function getLatticeConst(direction,Basis::Basis_Struct_2D)
-    if direction == 1
-        R2 = Rvec(1,0,1)
-    elseif direction == 2
-        R2 = Rvec(0,1,1)
-    else 
-        error("direction must be <2")
-    end
-    dist(Rvec(0,0,1),R2,Basis)
-end
-
-
-function plotCouplings!(System,Basis,pl=current();kwargs...)
-    plotCorrelations!(System,Basis,System.couplings,pl;kwargs...)
-end
-
-function plotBond!(R1::Rvec,R2::Rvec,Basis::Basis_Struct,pl=current();kwargs...)
-    r1 = getCartesian(R1,Basis)
-    r2 = getCartesian(R2,Basis)
-    points = Tuple(SA[r1[i],r2[i]] for i in eachindex(r1))
-    plot!(pl,points...;kwargs...)
-end
-
-function plotBonds!(Site::Rvec,Sites::AbstractVector{T},Basis::Basis_Struct,pl = current();kwargs...) where T <: Rvec
-    for R2 in Sites
-        plotBond!(Site,R2,Basis,pl;kwargs...)
-    end
-    return pl
-    
-end
-
-"""
-
-    Plots bonds of specified length between sites in siteList   
-    SiteList::AbstractVector,
-    Basis,
-    pl = current();
-    minDist::Real=0.,
-    maxDist::Real=Basis.NNdist,
-    kwargs...
-
-"""
-function plotDistBonds!(SiteList::AbstractVector,Basis,pl = current();minDist::Real=0., maxDist::Real=Basis.NNdist,label = "",kwargs...)
-    for (i,Site) in enumerate(SiteList)
-        Bonds = getBonds(Site,minDist,maxDist,Basis)
-        filter!(x-> x in SiteList && x != Site,Bonds)
-        plotBonds!(Site,Bonds,Basis,pl;color = :black,lw = 0.1,kwargs...,label = "")
-    end    
-    plotBond!(first(SiteList),first(SiteList),Basis;color = :black,lw = 0.1,label=label,kwargs...)# dummy to write label only once
-    return pl
-end
-
-plotDistBonds!(Site::Rvec,Basis,pl = current();kwargs...) = plotBonds!(Site,getBonds(Site,minDist,maxDist,Basis),Basis,pl;kwargs...)
-
-function plotDistBonds!(System::Geometry,Basis::Basis_Struct,sites,pl = current();kwargs...)
-    println(sites)
-    plotDistBonds!(sites,Basis,pl = current();kwargs...)
-end
-
-plotDistBonds(System::Geometry,Basis::Basis_Struct;kwargs...) = plotDistBonds!(generatePairSites(System.NLen,Basis),Basis,pl = plot();kwargs...)
-
-
-function getVertexR(Vertex::AbstractVector,Lattice)
-    @unpack Basis,PairList,PairTypes = Lattice
-    @unpack refSites = Basis
-    norm(i) = dist(refSites[PairTypes[i].xi],PairList[i],Basis)
-    norms = norm.(eachindex(PairList))
-    return norms,Vertex
 end
