@@ -1,20 +1,21 @@
 
 getPoint(R::Rvec,Basis) = Point(getCartesian(R,Basis)) 
-Makie.scatter!(ax,Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = scatter!(ax,getPoint.(Rs,(Basis,)),args...;kwargs...)
-Makie.scatter!(Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = scatter!(current_axis(),getPoint.(Rs,(Basis,)),args...;kwargs...)
+scatterRvec!(ax::Makie.Block,Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = scatter!(ax::Makie.Block,getPoint.(Rs,(Basis,)),args...;kwargs...)
+scatterRvec!(Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = scatter!(current_ax::Makie.Block(),getPoint.(Rs,(Basis,)),args...;kwargs...)
 
-Makie.lines!(ax,Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = lines!(ax,getPoint.(Rs,(Basis,)),args...;kwargs...)
+Makie.lines!(ax::Makie.Block,Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = lines!(ax,getPoint.(Rs,(Basis,)),args...;kwargs...)
 Makie.lines!(Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = lines!(current_axis(),getPoint.(Rs,(Basis,)),args...;kwargs...)
 
-Makie.scatter(Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = scatter(getPoint.(Rs,(Basis,)),args...;kwargs...)
+scatterRvec(Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = scatter(getPoint.(Rs,(Basis,)),args...;kwargs...)
 Makie.lines(Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = lines(getPoint.(Rs,(Basis,)),args...;kwargs...)
 
-function pairsPlot!(ax,PairList,Basis,args...;colors = (:blue,:red,:black,:cyan,:yellow,:green,:pink,:orange,:lime,:brown,:grey),colorBasis = false,kwargs...)
+function pairsPlot!(ax,PairList,Basis,args...;colors = [:blue,:red,:black,:cyan,:yellow,:green,:pink,:orange,:lime,:brown,:grey],colorBasis = false,kwargs...)
     uniquepairs = unique(PairList)
     
-    colors = colors[colors[Basis.SiteType[R.b]] for R in uniquepairs] 
+    inds = [Basis.SiteType[R.b] for R in uniquepairs]
+    col = colors[inds]
 
-    scatter!(ax,uniquepairs,color = colors,args...;kwargs...)
+    scatterRvec!(ax,uniquepairs,Basis,color = col,args...;kwargs...)
 end
 
 function getStandardFigure(::Rvec_2D)
@@ -54,7 +55,7 @@ function connectWithinDist(points::AbstractVector{P},dmin,dmax;tol = 1e-8) where
     return connectedPoints
 end
 
-connectWithinDist(points::AbstractVector{Rvec},Basis,dmin,dmax) = connectWithinDist(getPoint.(points,Basis),dmin,dmax)
+connectWithinDist(points::AbstractVector{<:Rvec},Basis,dmin,dmax) = connectWithinDist(getPoint.(points,Ref(Basis)),dmin,dmax)
 """
 
     Plots bonds of specified length between sites in siteList   
@@ -79,29 +80,27 @@ function plotDistBonds(SiteList::AbstractVector{<:Rvec},Basis,args...;kwargs...)
 end
 
 """Plot all sites and inequivalent pairs"""
-function plotSystem(System,Basis;
+function plotSystem(System,Basis,args...;
     plotAll = true,
     refSite = nothing,
-    markersize = 5,
+    markersize = 15,
     inequivColor = :green,
-    inequivalpha = 0.5,
+    inequivalpha = 0.7,
     plotBonds=true,
     plotCouplings=true,
     CouplingColors = nothing,
     Bonds = [(minDist = Basis.NNdist-1e-3,maxDist = Basis.NNdist+1e-3,colorRGB = [0,0,0])],
     bondlw = 7,
     allpairs = unique!(SpinFRGLattices.sortedPairList(System.NLen,Basis)[1]),
-    args...,
     kwargs...)
     (;PairList,OnsitePairs )= System
     
     indices = copy(OnsitePairs)
     push!(indices,length(PairList)) # get final index
-    if refSite === nothing 
-        plotpairs = unique(PairList)
+    plotpairs = if refSite === nothing 
+        unique(PairList)
     else
-        # allpairs = unique!(generatePairSites(System.NLen,Basis,Basis.refSites[refSite]))
-        plotpairs = PairList[indices[refSite]:indices[refSite+1]-1]
+        PairList[indices[refSite]:indices[refSite+1]-1]
     end
     filter!(x-> x in allpairs,plotpairs)
 
@@ -113,17 +112,30 @@ function plotSystem(System,Basis;
             bondlw = [bondlw for b in Bonds]
         end
         for (lw,b) in zip(bondlw,Bonds)
-            plotDistBonds!(ax,allpairs,Basis,minDist = b.minDist, maxDist = b.maxDist;lw,color = Plots.Colors.RGB((b.colorRGB./255)...))
+            plotDistBonds!(ax,allpairs,Basis,minDist = b.minDist, maxDist = b.maxDist;lw,color = Makie.Colors.RGB((b.colorRGB./255)...))
         end
     end
-    refSite !== nothing && pairsPlot!(ax,[Basis.refSites[refSite]], Basis,color = "black",markersize = 1.5*markersize,markershape = '×')
+    refSite !== nothing && pairsPlot!(ax,[Basis.refSites[refSite]], Basis,color = :black,markersize = 1.5*markersize,markershape = '×')
 
     plotAll && pairsPlot!(ax,plotpairs,Basis,color = inequivColor,alpha = inequivalpha,markersize = 2*markersize)
-    refSite !== nothing && pairsPlot!(ax,[Basis.refSites[refSite]],Basis,color = "darkred",markershape = '×',markersize = 1.5*markersize)
 
-    plotCouplings && plotCouplings!(System,Basis;refSite = refSite,colors = CouplingColors)
+    # refSite !== nothing && pairsPlot!(ax,[Basis.refSites[refSite]],Basis,color = :darkred,markershape = '×',markersize = 1.5*markersize)
+
+    # plotCouplings && plotCorrelations!(ax,System,Basis,System.couplings;allpairs,refSite = refSite,colors = CouplingColors)
 
     pairsPlot!(ax,allpairs,Basis,markersize = markersize;kwargs...)
 
+    return fig
+end
+
+function plotCorrelations!(ax,System,Basis,Correlations::AbstractVector; allpairs = unique!(SpinFRGLattices.sortedPairList(System.NLen,Basis)[1]),minCorr = 1e-14,refSite = nothing,colors = nothing,kwargs...)
+
+    (;PairTypes,PairList) = System
+    inds = findall(x-> abs(x)>minCorr,Correlations)
+
+    label(J) = round(J,digits=3)
+    lw(J) = 1+4*abs(J)
+
+    lines!(ax,allpairs[inds],linewidth = lw.(Correlations[inds]),label = label.(Correlations[inds]);kwargs...)
     return pl
 end
