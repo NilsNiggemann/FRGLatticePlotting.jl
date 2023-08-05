@@ -164,8 +164,10 @@ function plotSystem(System, Basis, args...;
     plotCouplings=true,
     colorBasis=false,
     CouplingColors=nothing,
-    Bonds=[(minDist=Basis.NNdist - 1e-3, maxDist=Basis.NNdist + 1e-3, colorRGB=[0, 0, 0])],
+    bondDist = Basis.NNdist,
+    Bonds=[(minDist=bondDist- 1e-3, maxDist=bondDist + 1e-3, colorRGB=[0, 0, 0])],
     bondlw=4,
+    
     bondstyle = [:solid for _ in Bonds],
     inequivScale=3.5,
     allpairs=unique!(SpinFRGLattices.sortedPairList(System.NLen, Basis)[1]),
@@ -204,7 +206,7 @@ function plotSystem(System, Basis, args...;
 
     pairsPlot!(ax, allpairs, Basis, markersize=markersize; colorBasis, inspectable=true, kwargs...)
 
-    plotCouplings && plotCorrelations!(ax, System, Basis, System.couplings; allpairs, refSite=Basis.refSites[refSite], colors=CouplingColors, linewidthscaling)
+    plotCouplings && plotCorrelations!(ax, System, Basis, System.couplings; allpairs, refSite, colors=CouplingColors, linewidthscaling)
 
     if inspect
         DataInspector(fig)
@@ -212,24 +214,31 @@ function plotSystem(System, Basis, args...;
     return fig
 end
 
-function plotCorrelations!(ax, System, Basis, Correlations::AbstractVector, args...; allpairs=unique!(SpinFRGLattices.sortedPairList(System.NLen, Basis)[1]), minCorr=1e-14, refSite=nothing, colors=nothing,
+function plotCorrelations!(ax, System, Basis, Correlations::AbstractVector, args...; allpairs=unique!(SpinFRGLattices.sortedPairList(System.NLen, Basis)[1]), minCorr=1e-14, refSite=1, colors=nothing,
     linewidthscaling=J -> 3 * abs(J),
     kwargs...)
 
     (; PairTypes, PairList) = System
+    inds1 = findall(x -> x.xi == refSite, PairTypes)
 
     inds = findall(x -> abs(x) > minCorr, Correlations)
+    inds = intersect(inds, inds1)
+
     Correlations = Correlations[inds]
     PairList = PairList[inds]
     label(J) = latexstring(round(J, digits=3))
-
+    R0 = Basis.refSites[refSite]
     for i in eachindex(Correlations, PairList)
         J = Correlations[i]
         color = J > 0 ? :red : :blue
         R = PairList[i]
-        linesRvec!(ax, [refSite, R], Basis; color, label=label(J), linewidth=linewidthscaling(J), inspector_label=getCorrelationInspector(J, R), args..., kwargs...)
+        linesRvec!(ax, [R0, R], Basis; color, label=label(J), linewidth=linewidthscaling(J), inspector_label=getCorrelationInspector(J, R), args..., kwargs...)
     end
-    axislegend(L"J_{ij}")
+    
+    if length(Correlations) > 0
+        axislegend(L"J_{ij}")
+    end
+
     return ax
 
 end

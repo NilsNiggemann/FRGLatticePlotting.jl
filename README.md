@@ -11,9 +11,11 @@
 ## Usage
 To install the package, install the FRG registry (see PMFRG.jl) and run
 
-```julia
+```
 ] add FRGLatticePlotting
-
+```
+Afterwards, a system can be plotted by running
+```julia
 using FRGLatticePlotting, SpinFRGLattices
 
 S = Pyrochlore.getPyrochlore(3, [5.,-3,0,1])
