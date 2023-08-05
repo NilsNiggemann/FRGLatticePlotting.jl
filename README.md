@@ -20,6 +20,7 @@ S = Pyrochlore.getPyrochlore(3, [5.,-3,0,1])
 fig = plotSystem(S,Pyrochlore.Basis)
 ```
 ![image info](Pyrochlore.png)
+
 Here, sites that form symmetry inequivalent pairs with the reference site (cross) are highlighted in green. Hovering over a site displays the lattice coordinates `Rvec(n1,n2,n3,b)` and the corresponding Cartesian coordinates.
 
 The standard settings use GLMakie for better interactive use, although one can also use CairoMakie for better export quality by running `FRGLatticePlotting.CairoMakie.activate!()` before plotting.
@@ -43,3 +44,5 @@ fig = plotSystem(S,Basis,
 )
 ```
 ![image info](SquareKagome.png)
+
+Hovering over an inequivalent pair displays the `pairNumber`, i.e. the position of the element in `S.PairList` 
