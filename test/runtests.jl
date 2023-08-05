@@ -1,4 +1,4 @@
 using FRGLatticePlotting, SpinFRGLattices
 
-S = Pyrochlore.getPyrochlore(4, [1.,0.7,.5,0.1])
-plotSystem(S,Pyrochlore.Basis)
+S = Pyrochlore.getPyrochlore(3, [5.,-3,0,1]./2)
+plotSystem(S,Pyrochlore.Basis,refSite = 1)
