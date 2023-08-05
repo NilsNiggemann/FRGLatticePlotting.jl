@@ -1,7 +1,7 @@
 name = "FRGLatticePlotting"
 uuid = "0e1bda0b-f6c0-498b-8522-61e6152bcfb4"
 authors = ["Nils Niggemann <nils.niggemann@fu-berlin.de>"]
-version = "2.0.3"
+version = "3.0.0"
 
 [deps]
 ColorSchemes = "35d6a980-a343-548e-a6ea-1d62b119f2f4"

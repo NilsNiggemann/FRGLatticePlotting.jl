@@ -1,4 +1,3 @@
-
 getPoint(R::Rvec,Basis) = Point(getCartesian(R,Basis)) 
 scatterRvec!(ax::Makie.Block,Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = scatter!(ax::Makie.Block,getPoint.(Rs,Ref(Basis)),args...;kwargs...)
 scatterRvec!(Rs::AbstractVector{<:Rvec},Basis,args...;kwargs...) = scatter!(current_axis(),getPoint.(Rs,Ref(Basis)),args...;kwargs...)
@@ -19,8 +18,7 @@ function pairsPlot!(ax,PairList,Basis,args...;colors = [:black,:red,:blue,:grey,
         [Basis.SiteType[R.b] for R in uniquepairs]
     end
     col = colors[inds]
-
-    scatterRvec!(ax,uniquepairs,Basis,color = col,args...;kwargs...)
+    scatterRvec!(ax,uniquepairs,Basis,color = col,args...;inspector_label = getPairNumberInspector(PairList,Basis),kwargs...)
 end
 
 function getStandardFigure(::Rvec_2D)
@@ -134,10 +132,10 @@ function getCorrelationInspector(J,R2)
     return inspector
 end
 
-"""Plot all sites and inequivalent pairs"""
+"""Plot all sites and inequivalent pairs
 function plotSystem(System,Basis,args...;
     plotAll = true,
-    refSite = nothing,
+    refSite = 1,
     markersize = 20,
     inequivColor = :green,
     inequivalpha = 0.6,
@@ -147,9 +145,32 @@ function plotSystem(System,Basis,args...;
     CouplingColors = nothing,
     Bonds = [(minDist = Basis.NNdist-1e-3,maxDist = Basis.NNdist+1e-3,colorRGB = [0,0,0])],
     bondlw = 7,
+    inequivScale = 3.5,
     allpairs = unique!(SpinFRGLattices.sortedPairList(System.NLen,Basis)[1]),
     inspect = true,
-    kwargs...)
+    linewidthscaling = J -> 2*abs(J)
+    kwargs...
+    )
+"""
+function plotSystem(System,Basis,args...;
+    plotAll = true,
+    refSite = 1,
+    markersize = 20,
+    inequivColor = :green,
+    inequivalpha = 0.6,
+    plotBonds=true,
+    plotCouplings=true,
+    colorBasis = false,
+    CouplingColors = nothing,
+    Bonds = [(minDist = Basis.NNdist-1e-3,maxDist = Basis.NNdist+1e-3,colorRGB = [0,0,0])],
+    bondlw = 7,
+    inequivScale = 3.5,
+    allpairs = unique!(SpinFRGLattices.sortedPairList(System.NLen,Basis)[1]),
+    inspect = true,
+    linewidthscaling = J -> 2*abs(J),
+    kwargs...
+    )
+
     (;PairList,OnsitePairs )= System
     
     indices = copy(OnsitePairs)
@@ -173,23 +194,16 @@ function plotSystem(System,Basis,args...;
         end
     end
 
+    plotAll && pairsPlot!(ax,plotpairs,Basis,color = inequivColor,alpha = inequivalpha,markersize = inequivScale*markersize;kwargs...)
     
-    linewidthscaling = J -> 3*abs(J)
-    inverseScaling = val -> 1/3 * val
-
-    if refSite !== nothing
-        plotCouplings && plotCorrelations!(ax,System,Basis,System.couplings;allpairs,refSite = Basis.refSites[refSite],colors = CouplingColors,linewidthscaling)
-    end
+    R0 = Basis.refSites[refSite]
+    scatterRvec!(ax,[Basis.refSites[refSite]],Basis,color = :darkred,marker = '×',markersize = 5.0*markersize, inspector_label = (self,i,p) -> latexstring("R_0 = ",round.(getPoint(R0,Basis),digits=3)) )
     
-    plotAll && pairsPlot!(ax,plotpairs,Basis,color = inequivColor,alpha = inequivalpha,markersize = 3.5*markersize,inspector_label = getPairNumberInspector(plotpairs,Basis);kwargs...)
-
     pairsPlot!(ax,allpairs,Basis,markersize = markersize;colorBasis,inspector_label = getInspector(allpairs,Basis),inspectable = true,kwargs...)
-
-    refSite !== nothing && scatterRvec!(ax,[Basis.refSites[refSite]],Basis,color = :darkred,marker = '×',markersize = 5.0*markersize, inspector_label = (self,i,p) -> L"R_0" )
     
-    # refSite !== nothing && scatterRvec!(ax,[Basis.refSites[refSite]], Basis)
+    plotCouplings && plotCorrelations!(ax,System,Basis,System.couplings;allpairs,refSite = Basis.refSites[refSite],colors = CouplingColors,linewidthscaling)
     
-    if inspect 
+    if inspect
         DataInspector(fig)
     end
     return fig
