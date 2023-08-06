@@ -199,7 +199,7 @@ function plotSystem(System, Basis, args...;
         end
     end
 
-    plotAll && pairsPlot!(ax, plotpairs, Basis, color=inequivColor, alpha=inequivalpha, markersize=inequivScale * markersize; inspector_label=getPairNumberInspector(allpairs, Basis,indices[refSite]), kwargs...)
+    plotAll && pairsPlot!(ax, plotpairs, Basis, color=inequivColor, alpha=inequivalpha, markersize=inequivScale * markersize; inspector_label=getPairNumberInspector(plotpairs, Basis,indices[refSite]-1), kwargs...)
 
     R0 = Basis.refSites[refSite]
     scatterRvec!(ax, [Basis.refSites[refSite]], Basis, color=:darkred, marker='×', markersize=5.0 * markersize, inspector_label=(self, i, p) -> latexstring("R_0 = ", round.(getPoint(R0, Basis), digits=3)))
