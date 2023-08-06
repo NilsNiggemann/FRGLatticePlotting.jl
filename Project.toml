@@ -1,7 +1,7 @@
 name = "FRGLatticePlotting"
 uuid = "0e1bda0b-f6c0-498b-8522-61e6152bcfb4"
 authors = ["Nils Niggemann <nils.niggemann@fu-berlin.de>"]
-version = "3.0.1"
+version = "3.0.2"
 
 [deps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
