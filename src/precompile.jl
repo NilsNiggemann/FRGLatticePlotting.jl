@@ -5,11 +5,22 @@
         GLMakie.activate!()
         GLMakie.Makie.inline!(false)
         using FRGLatticePlotting, SpinFRGLattices
-        S = Pyrochlore.getPyrochlore(3, [5.,-3,0,1])
-        fig = plotSystem(S,Pyrochlore.Basis,refSite = 1,colorBasis=false,inspect = true)
+
+
+        S1 = Pyrochlore.getPyrochlore(3, [5.,-3,0,1])
+        S2 = SquareKagome.getMirrorSquareKagome(6, 5.,-3)
         
-        S = SquareKagome.getMirrorSquareKagome(6, 5.,-3)
-        fig = plotSystem(S,SquareKagome.ShurikenBasis(),refSite = 2,inspect = true,inequivScale = 2.5)
+        for (Basis,S) in zip(
+            (Pyrochlore.Basis,SquareKagome.ShurikenBasis()),
+            (S1,S2)
+            )
+            fig = plotSystem(S,Basis,refSite = 1,inspect = true,inequivScale = 2.5)
+            
+            FRGLatticePlotting.getInspector(S.PairList,Basis)
+            FRGLatticePlotting.getPairNumberInspector(S.PairList,Basis)
+            FRGLatticePlotting.getCorrelationInspector(1.0,first(S.PairList))
+        end
+
     end
 end
 

@@ -118,7 +118,6 @@ end
 function getPairNumberInspector(PairList::AbstractVector{<:Rvec}, Basis,offset=0)
     function inspector(self, i, p)
         R = PairList[i]
-        # r = round.(getPoint(R,Basis),digits=3)
         latexstring(getstring(R), " → ", i+offset)
     end
     return inspector
