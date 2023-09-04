@@ -113,14 +113,17 @@ function plotDistBonds(SiteList::AbstractVector{R}, Basis, args...; kwargs...) w
     fig
 end
 
+strd(x) = string(round(x, digits=3))
 getstring(R::Rvec_3D) = string("(", R.n1, ", ", R.n2, ", ", R.n3, ", ", R.b, ")")
 getstring(R::Rvec_2D) = string("(", R.n1, ", ", R.n2, ", ", R.b, ")")
+getstring(r::AbstractArray) = string("[", join(strd.(r),", "),"]")
 
 function getInspector(RvecList::AbstractVector{RT}, Basis) where {RT<:Rvec}
     fig, ax = getStandardFigure(RT)
     function inspector(self, i, p)
         R = RvecList[i]
-        r = round.(getPoint(R, Basis), digits=3)
+        r = getPoint(R, Basis)
+        r = getstring(r)
         latexstring(getstring(R), " →\n", r)
     end
     return inspector
@@ -160,7 +163,7 @@ Plot all sites and inequivalent pairs
         Bonds=[(minDist=bondDist- 1e-3, maxDist=bondDist + 1e-3, colorRGB=[0, 0, 0])],
         bondlw=4,
         bondstyle = [:solid for _ in Bonds],
-        inequivScale=3.5,
+        inequivScale=2.5,
         allpairs=unique!(SpinFRGLattices.sortedPairList(System.NLen, Basis)[1]),
         linewidthscaling=J -> 2 * abs(J),
         kwargs...
@@ -181,7 +184,7 @@ function plotSystem!(ax, System, Basis, args...;
     bondlw=4,
     
     bondstyle = [:solid for _ in Bonds],
-    inequivScale=3.5,
+    inequivScale=2.5,
     allpairs=unique!(SpinFRGLattices.sortedPairList(System.NLen, Basis)[1]),
     linewidthscaling=J -> 2 * abs(J),
     kwargs...
@@ -237,7 +240,7 @@ Plot all sites and inequivalent pairs
         Bonds=[(minDist=Basis.NNdist - 1e-3, maxDist=Basis.NNdist + 1e-3, colorRGB=[0, 0, 0])],
         bondlw=4,
         bondstyle = [:solid for _ in Bonds],
-        inequivScale=3.5,
+        inequivScale=2.5,
         allpairs=unique!(SpinFRGLattices.sortedPairList(System.NLen, Basis)[1]),
         inspect=true,
         linewidthscaling=J -> 2 * abs(J),
