@@ -21,21 +21,30 @@ function pairsPlot!(ax, PairList, Basis, args...; colors=[:black, :red, :blue, :
     scatterRvec!(ax, uniquepairs, Basis, color=col, args...; inspector_label=getInspector(PairList, Basis), kwargs...)
 end
 
-function getStandardFigure(::Rvec_2D;kwargs...)
+function getStandardFigure(::Type{Rvec_2D};inspect=true,kwargs...)
     fig = Figure(resolution=(800, 600))
     ax = Axis(fig[1, 1], aspect=1, xticks=SimpleTicks(), yticks=SimpleTicks(), xlabel=L"x", ylabel=L"y";kwargs...)
+    if inspect
+        DataInspector(fig)
+    end
     fig, ax
 end
 
-function getStandardFigure(::Rvec_3D;kwargs...)
+
+function getStandardFigure(::Type{Rvec_3D};inspect=true,kwargs...)
     fig = Figure(resolution=(800, 600))
     ax = Axis3(fig[1, 1], aspect=(1, 1, 1), xticks=SimpleTicks(), yticks=SimpleTicks(), zticks=SimpleTicks(), xlabel=L"x", ylabel=L"y", zlabel=L"z";kwargs...)
+    if inspect
+        DataInspector(fig)
+    end
     fig, ax
 end
+
+getStandardFigure(R::Rvec;kwargs...) = getStandardFigure(typeof(R); kwargs...)
 
 function pairsPlot(PairList::AbstractVector{R}, Basis, args...; kwargs...) where {R<:Rvec}
     fig, ax = getStandardFigure(R)
-    plotSites!(ax, sites, Basis)
+    scatterRvec!(ax, PairList, Basis) 
     fig
 end
 
@@ -96,7 +105,9 @@ function plotDistBonds!(ax, SiteList::AbstractVector{<:Rvec}, Basis, args...; mi
     return ax
 end
 
-function plotDistBonds(SiteList::AbstractVector{<:Rvec}, Basis, args...; kwargs...)
+plotDistBonds!(SiteList::AbstractVector{<:Rvec}, Basis, args...; kwargs...) = plotDistBonds!(current_axis(), SiteList, Basis, args...; kwargs...)
+
+function plotDistBonds(SiteList::AbstractVector{R}, Basis, args...; kwargs...) where {R<:Rvec}
     fig, ax = getStandardFigure(R)
     plotDistBonds!(ax, SiteList, Basis; minDist=minDist, maxDist=maxDist, args..., kwargs...)
     fig
@@ -105,7 +116,8 @@ end
 getstring(R::Rvec_3D) = string("(", R.n1, ", ", R.n2, ", ", R.n3, ", ", R.b, ")")
 getstring(R::Rvec_2D) = string("(", R.n1, ", ", R.n2, ", ", R.b, ")")
 
-function getInspector(RvecList::AbstractVector{<:Rvec}, Basis)
+function getInspector(RvecList::AbstractVector{RT}, Basis) where {RT<:Rvec}
+    fig, ax = getStandardFigure(RT)
     function inspector(self, i, p)
         R = RvecList[i]
         r = round.(getPoint(R, Basis), digits=3)
@@ -131,27 +143,27 @@ function getCorrelationInspector(J, R2)
     return inspector
 end
 
-"""Plot all sites and inequivalent pairs
-function plotSystem(ax, System,Basis,args...;
-    plotAll=true,
-    refSite=1,
-    markersize=20,
-    inequivColor=:green,
-    inequivalpha=0.6,
-    plotBonds=true,
-    plotCouplings=true,
-    colorBasis=false,
-    CouplingColors=nothing,
-    bondDist = Basis.NNdist,
-    Bonds=[(minDist=bondDist- 1e-3, maxDist=bondDist + 1e-3, colorRGB=[0, 0, 0])],
-    bondlw=4,
-    
-    bondstyle = [:solid for _ in Bonds],
-    inequivScale=3.5,
-    allpairs=unique!(SpinFRGLattices.sortedPairList(System.NLen, Basis)[1]),
-    linewidthscaling=J -> 2 * abs(J),
-    kwargs...
+"""
+Plot all sites and inequivalent pairs
 
+    function plotSystem!(ax, System,Basis,args...;
+        plotAll=true,
+        refSite=1,
+        markersize=20,
+        inequivColor=:green,
+        inequivalpha=0.6,
+        plotBonds=true,
+        plotCouplings=true,
+        colorBasis=false,
+        CouplingColors=nothing,
+        bondDist = Basis.NNdist,
+        Bonds=[(minDist=bondDist- 1e-3, maxDist=bondDist + 1e-3, colorRGB=[0, 0, 0])],
+        bondlw=4,
+        bondstyle = [:solid for _ in Bonds],
+        inequivScale=3.5,
+        allpairs=unique!(SpinFRGLattices.sortedPairList(System.NLen, Basis)[1]),
+        linewidthscaling=J -> 2 * abs(J),
+        kwargs...
     )
 """
 function plotSystem!(ax, System, Basis, args...;
@@ -177,6 +189,17 @@ function plotSystem!(ax, System, Basis, args...;
 
     (; PairList, OnsitePairs) = System
 
+    if plotBonds
+        if bondlw isa Real
+            bondlw = [bondlw for b in Bonds]
+        end
+        for (lw, b,ls) in zip(bondlw, Bonds, bondstyle)
+            plotDistBonds!(ax, allpairs, Basis, minDist=b.minDist, maxDist=b.maxDist; linestyle = ls, linewidth = lw, color=Makie.Colors.RGB((b.colorRGB ./ 255)...), inspectable=false)
+        end
+    end
+
+    plotCouplings && plotCorrelations!(ax, System, Basis, System.couplings; allpairs, refSite, colors=CouplingColors, linewidthscaling)
+
     indices = copy(OnsitePairs)
     push!(indices, length(PairList)) # get final index
     plotpairs = if refSite === nothing
@@ -188,14 +211,7 @@ function plotSystem!(ax, System, Basis, args...;
 
     plotAll || (allpairs = plotpairs)
 
-    if plotBonds
-        if bondlw isa Real
-            bondlw = [bondlw for b in Bonds]
-        end
-        for (lw, b,ls) in zip(bondlw, Bonds, bondstyle)
-            plotDistBonds!(ax, allpairs, Basis, minDist=b.minDist, maxDist=b.maxDist; linestyle = ls, linewidth = lw, color=Makie.Colors.RGB((b.colorRGB ./ 255)...), inspectable=false)
-        end
-    end
+
     plotAll && pairsPlot!(ax, plotpairs, Basis, color=inequivColor, alpha=inequivalpha, markersize=inequivScale * markersize; inspector_label=getPairNumberInspector(plotpairs, Basis,indices[refSite]-1))
 
     R0 = Basis.refSites[refSite]
@@ -203,43 +219,41 @@ function plotSystem!(ax, System, Basis, args...;
 
     pairsPlot!(ax, allpairs, Basis, markersize=markersize; colorBasis, inspectable=true, kwargs...)
 
-    plotCouplings && plotCorrelations!(ax, System, Basis, System.couplings; allpairs, refSite, colors=CouplingColors, linewidthscaling)
-
 end
 
-"""Plot all sites and inequivalent pairs
-function plotSystem(ax, System,Basis,args...;
-    plotAll=true,
-    refSite=1,
-    markersize=20,
-    inequivColor=:green,
-    inequivalpha=0.6,
-    plotBonds=true,
-    plotCouplings=true,
-    colorBasis=false,
-    CouplingColors=nothing,
-    Bonds=[(minDist=Basis.NNdist - 1e-3, maxDist=Basis.NNdist + 1e-3, colorRGB=[0, 0, 0])],
-    bondlw=4,
-    bondstyle = [:solid for _ in Bonds],
-    inequivScale=3.5,
-    allpairs=unique!(SpinFRGLattices.sortedPairList(System.NLen, Basis)[1]),
-    inspect=true,
-    linewidthscaling=J -> 2 * abs(J),
-    kwargs...
+"""
+Plot all sites and inequivalent pairs
 
+    plotSystem(ax, System,Basis,args...;
+        plotAll=true,
+        refSite=1,
+        markersize=20,
+        inequivColor=:green,
+        inequivalpha=0.6,
+        plotBonds=true,
+        plotCouplings=true,
+        colorBasis=false,
+        CouplingColors=nothing,
+        Bonds=[(minDist=Basis.NNdist - 1e-3, maxDist=Basis.NNdist + 1e-3, colorRGB=[0, 0, 0])],
+        bondlw=4,
+        bondstyle = [:solid for _ in Bonds],
+        inequivScale=3.5,
+        allpairs=unique!(SpinFRGLattices.sortedPairList(System.NLen, Basis)[1]),
+        inspect=true,
+        linewidthscaling=J -> 2 * abs(J),
+        kwargs...
     )
+
 """
 function plotSystem(System, Basis, args...;
     Axis = (;),
     inspect=true,
     kwargs...
 )
-    fig, ax = getStandardFigure(first(System.PairList);Axis...)
+    fig, ax = getStandardFigure(first(System.PairList);inspect,Axis...)
 
     plotSystem!(ax, System, Basis, args...; kwargs...)
-    if inspect
-        DataInspector(fig)
-    end
+
     return fig
 end
 

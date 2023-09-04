@@ -2,7 +2,7 @@ module FRGLatticePlotting
 
 using GLMakie, CairoMakie, SpinFRGLattices, MakieHelpers, LaTeXStrings
 include("LatticePlot.jl")
-export pairsPlot, plotSystem, plotBonds!, plotDistBonds!, plotDistBonds, scatterRvec!,linesRvec!, scatterRvec, linesRvec
+export pairsPlot,pairsPlot!, plotSystem, plotSystem!, plotBonds!, plotDistBonds!, plotDistBonds, scatterRvec!,linesRvec!, scatterRvec, linesRvec, getStandardFigure
 
 using PrecompileTools
 include("precompile.jl")
