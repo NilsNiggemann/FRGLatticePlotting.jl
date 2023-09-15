@@ -99,9 +99,9 @@ connectWithinDist(p1::Rvec, points::AbstractVector{<:Rvec}, Basis, dmin, dmax) =
     kwargs...
 
 """
-function plotDistBonds!(ax, SiteList::AbstractVector{<:Rvec}, Basis, args...; minDist::Real=0.0, maxDist::Real=Basis.NNdist, kwargs...)
+function plotDistBonds!(ax::Makie.Block, SiteList::AbstractVector{<:Rvec}, Basis, args...; minDist::Real=0.0, maxDist::Real=Basis.NNdist, kwargs...)
     connectedPoints = connectWithinDist(SiteList, Basis, minDist, maxDist)
-    lines!(connectedPoints, color=(:black, 1), linestyle=:solid; kwargs...)
+    lines!(ax,connectedPoints, color=(:black, 1), linestyle=:solid; kwargs...)
     return ax
 end
 
