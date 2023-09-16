@@ -1,7 +1,7 @@
 name = "FRGLatticePlotting"
 uuid = "0e1bda0b-f6c0-498b-8522-61e6152bcfb4"
 authors = ["Nils Niggemann <nils.niggemann@fu-berlin.de>"]
-version = "3.0.5"
+version = "3.0.6"
 
 [deps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
@@ -11,6 +11,4 @@ MakieHelpers = "769ed66a-a1e3-4c16-885f-a5b16fb973c2"
 PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 SpinFRGLattices = "053fb7f8-31b7-4f68-aef8-4452b415dd8c"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
-
-[extensions]
 GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"

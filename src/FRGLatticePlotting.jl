@@ -4,7 +4,7 @@ using CairoMakie, SpinFRGLattices, MakieHelpers, LaTeXStrings
 
 HASGSL = false
 try
-    using GSL
+    using GLMakie
     HASGSL = true
 catch
     @info "GSL not found, using fallback"
