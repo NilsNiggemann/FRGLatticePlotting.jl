@@ -164,7 +164,8 @@ Plot all sites and inequivalent pairs
         bondlw=4,
         bondstyle = [:solid for _ in Bonds],
         inequivScale=2.5,
-        allpairs=unique!(SpinFRGLattices.sortedPairList(System.NLen, Basis)[1]),
+        method = SpinFRGLattices.generatePairSites,
+        allpairs=unique!(method(System.NLen, Basis)),
         linewidthscaling=J -> 2 * abs(J),
         kwargs...
     )
@@ -185,7 +186,8 @@ function plotSystem!(ax, System, Basis, args...;
     
     bondstyle = [:solid for _ in Bonds],
     inequivScale=2.5,
-    allpairs=unique!(SpinFRGLattices.sortedPairList(System.NLen, Basis)[1]),
+    method = SpinFRGLattices.generatePairSites,
+    allpairs=unique!(method(System.NLen, Basis)),
     linewidthscaling=J -> 2 * abs(J),
     kwargs...
 )
@@ -241,7 +243,8 @@ Plot all sites and inequivalent pairs
         bondlw=4,
         bondstyle = [:solid for _ in Bonds],
         inequivScale=2.5,
-        allpairs=unique!(SpinFRGLattices.sortedPairList(System.NLen, Basis)[1]),
+        method = SpinFRGLattices.generatePairSites,
+        allpairs=unique!(method(System.NLen, Basis)),
         inspect=true,
         linewidthscaling=J -> 2 * abs(J),
         kwargs...
