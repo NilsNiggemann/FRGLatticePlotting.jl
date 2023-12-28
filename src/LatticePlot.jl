@@ -99,9 +99,9 @@ connectWithinDist(p1::Rvec, points::AbstractVector{<:Rvec}, Basis, dmin, dmax) =
     kwargs...
 
 """
-function plotDistBonds!(ax, SiteList::AbstractVector{<:Rvec}, Basis, args...; minDist::Real=0.0, maxDist::Real=Basis.NNdist, kwargs...)
+function plotDistBonds!(ax::Makie.Block, SiteList::AbstractVector{<:Rvec}, Basis, args...; minDist::Real=0.0, maxDist::Real=Basis.NNdist, kwargs...)
     connectedPoints = connectWithinDist(SiteList, Basis, minDist, maxDist)
-    lines!(connectedPoints, color=(:black, 1), linestyle=:solid; kwargs...)
+    lines!(ax,connectedPoints, color=(:black, 1), linestyle=:solid; kwargs...)
     return ax
 end
 
@@ -112,6 +112,43 @@ function plotDistBonds(SiteList::AbstractVector{R}, Basis, args...; kwargs...) w
     plotDistBonds!(ax, SiteList, Basis; minDist=minDist, maxDist=maxDist, args..., kwargs...)
     fig
 end
+
+function plotBond!(ax::Makie.Block, SiteList::AbstractVector{<:Rvec}, Basis;minDist::Real=0.0, maxDist::Real=Basis.NNdist, site1 = nothing,site2 = nothing, colorRGB= (0,0,0),kwargs...)
+
+    function condition(R1,R2)
+        if site1 isa Integer && site2 isa Integer
+            return Basis.SiteType[R1.b] == site1 && Basis.SiteType[R2.b] == site2 && minDist <= dist(R1,R2,Basis) <= maxDist
+        else
+            return minDist <= dist(R1,R2,Basis) <= maxDist
+        end
+    end
+    
+    Pt(R) = getPoint(R,Basis)
+    Segments = [(Pt(R1), Pt(R2)) for R1 in SiteList for R2 in SiteList if condition(R1,R2)]
+    linesegments!(ax,Segments; color=Makie.Colors.RGB((colorRGB ./ 255)...), kwargs...)
+end
+
+"""
+    plotBonds!(ax::Makie.Block,Bonds,allpairs;kwargs...)
+    plots a List of given bonds. Bonds can be a NamedTuple of the form
+
+    bond = (;
+        minDist, #minimum distance between sites
+        maxDist, #maximum distance between sites
+        site1, #type of site 1 (Integer ≤ Basis.NUnique)
+        site2, #type of site 2 (Integer ≤ Basis.NUnique)
+        color, #color of bond
+        colorRGB, #color of bond as RGB i.e. (0,0,0) for black
+        ,kwargs... # kwargs allowed for Makie.linesegments!
+        )
+    :)
+"""
+function plotBonds!(ax::Makie.Block,Bonds,allpairs,Basis;kwargs...)
+    for b in Bonds
+        plotBond!(ax, allpairs, Basis;inspectable=false,b...)
+    end
+end
+
 
 strd(x) = string(round(x, digits=3))
 getstring(R::Rvec_3D) = string("(", R.n1, ", ", R.n2, ", ", R.n3, ", ", R.b, ")")
@@ -160,11 +197,12 @@ Plot all sites and inequivalent pairs
         colorBasis=false,
         CouplingColors=nothing,
         bondDist = Basis.NNdist,
-        Bonds=[(minDist=bondDist- 1e-3, maxDist=bondDist + 1e-3, colorRGB=[0, 0, 0])],
+        Bonds=[(site1 = nothing, site2 = nothing, minDist=bondDist- 1e-3, maxDist=bondDist + 1e-3, colorRGB=[0, 0, 0])],
         bondlw=4,
         bondstyle = [:solid for _ in Bonds],
         inequivScale=2.5,
-        allpairs=unique!(SpinFRGLattices.sortedPairList(System.NLen, Basis)[1]),
+        method = SpinFRGLattices.generatePairSites,
+        allpairs=unique!(method(System.NLen, Basis)),
         linewidthscaling=J -> 2 * abs(J),
         kwargs...
     )
@@ -180,12 +218,13 @@ function plotSystem!(ax, System, Basis, args...;
     colorBasis=false,
     CouplingColors=nothing,
     bondDist = Basis.NNdist,
-    Bonds=[(minDist=bondDist- 1e-3, maxDist=bondDist + 1e-3, colorRGB=[0, 0, 0])],
+    Bonds=[(site1 = nothing, site2 = nothing, minDist=bondDist- 1e-3, maxDist=bondDist + 1e-3, colorRGB=[0, 0, 0])],
     bondlw=4,
     
     bondstyle = [:solid for _ in Bonds],
     inequivScale=2.5,
-    allpairs=unique!(SpinFRGLattices.sortedPairList(System.NLen, Basis)[1]),
+    method = SpinFRGLattices.generatePairSites,
+    allpairs=unique!(method(System.NLen, Basis)),
     linewidthscaling=J -> 2 * abs(J),
     kwargs...
 )
@@ -193,12 +232,7 @@ function plotSystem!(ax, System, Basis, args...;
     (; PairList, OnsitePairs) = System
 
     if plotBonds
-        if bondlw isa Real
-            bondlw = [bondlw for b in Bonds]
-        end
-        for (lw, b,ls) in zip(bondlw, Bonds, bondstyle)
-            plotDistBonds!(ax, allpairs, Basis, minDist=b.minDist, maxDist=b.maxDist; linestyle = ls, linewidth = lw, color=Makie.Colors.RGB((b.colorRGB ./ 255)...), inspectable=false)
-        end
+        plotBonds!(ax, Bonds, allpairs,Basis;linewidth = bondlw, linestyle = bondstyle, kwargs...)
     end
 
     plotCouplings && plotCorrelations!(ax, System, Basis, System.couplings; allpairs, refSite, colors=CouplingColors, linewidthscaling)
@@ -241,7 +275,8 @@ Plot all sites and inequivalent pairs
         bondlw=4,
         bondstyle = [:solid for _ in Bonds],
         inequivScale=2.5,
-        allpairs=unique!(SpinFRGLattices.sortedPairList(System.NLen, Basis)[1]),
+        method = SpinFRGLattices.generatePairSites,
+        allpairs=unique!(method(System.NLen, Basis)),
         inspect=true,
         linewidthscaling=J -> 2 * abs(J),
         kwargs...

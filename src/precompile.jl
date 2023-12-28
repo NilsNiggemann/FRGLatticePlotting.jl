@@ -2,8 +2,10 @@
 @setup_workload begin
 
     @compile_workload begin
-        GLMakie.activate!()
-        GLMakie.Makie.inline!(false)
+        if HASGSL
+            GLMakie.activate!()
+            GLMakie.Makie.inline!(false)
+        end
         using FRGLatticePlotting, SpinFRGLattices
 
 
