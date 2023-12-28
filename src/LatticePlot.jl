@@ -22,7 +22,7 @@ function pairsPlot!(ax, PairList, Basis, args...; colors=[:black, :red, :blue, :
 end
 
 function getStandardFigure(::Type{Rvec_2D};inspect=true,kwargs...)
-    fig = Figure(resolution=(800, 600))
+    fig = Figure(size=(800, 600))
     ax = Axis(fig[1, 1], aspect=1, xticks=SimpleTicks(), yticks=SimpleTicks(), xlabel=L"x", ylabel=L"y";kwargs...)
     if inspect
         DataInspector(fig)
@@ -32,7 +32,7 @@ end
 
 
 function getStandardFigure(::Type{Rvec_3D};inspect=true,kwargs...)
-    fig = Figure(resolution=(800, 600))
+    fig = Figure(size=(800, 600))
     ax = Axis3(fig[1, 1], aspect=(1, 1, 1), xticks=SimpleTicks(), yticks=SimpleTicks(), zticks=SimpleTicks(), xlabel=L"x", ylabel=L"y", zlabel=L"z";kwargs...)
     if inspect
         DataInspector(fig)
