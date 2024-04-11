@@ -224,7 +224,7 @@ function plotSystem!(ax, System, Basis, args...;
     bondstyle = [:solid for _ in Bonds],
     inequivScale=2.5,
     method = SpinFRGLattices.generatePairSites,
-    allpairs=unique!(method(System.NLen, Basis)),
+    allpairs=unique!(method(System.NLen, Basis,Basis.refSites[refSite])),
     linewidthscaling=J -> 2 * abs(J),
     kwargs...
 )
